@@ -1,0 +1,57 @@
+[
+  {
+    "id": "WTU-8510",
+    "timestamp": "28/10/2026, 15.46.48",
+    "customerName": "Pak Anton",
+    "phone": "0812-XXXX-9900",
+    "items": [
+      {
+        "name": "Kopi Susu Gula Aren (Signature Wetu)",
+        "packaging": "Botol 1 Liter (Porsi Ramean)",
+        "qty": 2,
+        "price": 75000,
+        "subtotal": 150000
+      }
+    ],
+    "total": 150000,
+    "deliveryLocation": "Gedung Petro Lt. 2, Ruang Drilling",
+    "paymentStatus": "Pending",
+    "channel": "WhatsApp Pre-Order"
+  },
+  {
+    "id": "WTU-2601",
+    "timestamp": "2026-10-28 09:15:00",
+    "customerName": "Pak Hendra (PHR)",
+    "phone": "081288990011",
+    "items": [
+      {
+        "name": "Kopi Susu Gula Aren",
+        "packaging": "Botol 1 Liter",
+        "qty": 1,
+        "subtotal": 75000
+      }
+    ],
+    "total": 75000,
+    "deliveryLocation": "Gedung Utama Lt. 4, Ruang Eksplorasi",
+    "paymentStatus": "Paid",
+    "channel": "WhatsApp Pre-Order"
+  },
+  {
+    "id": "WTU-2602",
+    "timestamp": "2026-10-28 10:30:00",
+    "customerName": "Mbak Sarah",
+    "phone": "085712345678",
+    "items": [
+      {
+        "name": "Creamy Latte",
+        "packaging": "Cup Dingin",
+        "qty": 2,
+        "subtotal": 40000
+      }
+    ],
+    "total": 40000,
+    "deliveryLocation": "Gedung B Lt. 2, Divisi HR",
+    "paymentStatus": "Pending",
+    "channel": "WhatsApp Pre-Order"
+  }
+]
