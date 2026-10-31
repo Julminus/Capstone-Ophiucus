@@ -1,0 +1,10 @@
+{
+  "description": "Helps users organize and explore attached content, making key information easier to find and use.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
