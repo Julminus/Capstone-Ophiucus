@@ -428,7 +428,7 @@ export default function App() {
   }
 
   // Send Entire Cart via WhatsApp
-  const sendCartToWhatsApp = () => {
+  const sendCartToWhatsApp = async () => {
     if (cart.length === 0) return
 
     let orderList = cart
@@ -455,6 +455,37 @@ export default function App() {
       `👤 Pemesan: *${customerName || 'Staff PHR'}*\n` +
       (customerNotes ? `📝 Catatan: ${customerNotes}\n` : '') +
       `\nMohon konfirmasi pesanan dan nomor rekening / QRIS pembayarannya ya. Terima kasih!`
+
+    // --- INTEGRASI GOOGLE SHEETS ---
+    try {
+      const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec';
+      
+      const payload = {
+        customerName: customerName || 'Staff PHR',
+        building: building,
+        roomInfo: roomInfo || 'Tidak diisi',
+        orderDetails: orderList,
+        totalPrice: `Rp ${totalWithOngkir.toLocaleString('id-ID')}`,
+        customerNotes: customerNotes || '-',
+      };
+
+      // Menggunakan mode 'no-cors' karena Google Apps Script melakukan redirect
+      // Kita tidak bisa membaca respon JSON secara detail, tapi request tetap sampai ke server
+      await fetch(SHEET_API_URL, {
+        method: 'POST',
+        mode: 'no-cors', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      showToast('✅ Pesanan dicatat di sistem & mengirim ke WA...');
+    } catch (error) {
+      console.error('Gagal menyimpan ke Sheets:', error);
+      showToast('⚠️ Pesanan terkirim ke WA, tapi gagal dicatat di sistem.');
+    }
+    // ------------------------------
 
     window.open(`https://wa.me/6281234567890?text=${encodeURIComponent(message)}`, '_blank')
   }
@@ -588,813 +619,411 @@ export default function App() {
               <Icon name="bag" className="w-4 h-4 text-[#e8a756] group-hover:scale-110 transition-transform" />
               <span className="hidden sm:inline">Pesanan Kantor</span>
               {totalCartCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-[#e8a756] text-black font-bold text-xs flex items-center justify-center animate-bounce">
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#e8a756] text-[10px] font-bold text-black">
                   {totalCartCount}
                 </span>
               )}
-            </button>
-
-            {/* Direct WhatsApp CTA */}
-            <button
-              onClick={() => directOrderWhatsApp('Menu Pilihan')}
-              className="flex items-center gap-2 bg-[#25d366] hover:bg-[#20ba59] text-black font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-[#25d366]/20"
-            >
-              <Icon name="message" className="w-4 h-4 fill-black" />
-              <span className="hidden sm:inline">Pesan WA</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* HERO SECTION */}
-      <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 overflow-hidden">
-        {/* Ambient Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#e8a756]/10 rounded-full blur-[140px] pointer-events-none"></div>
-        <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] bg-[#c88339]/10 rounded-full blur-[120px] pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Left Copy */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2.5 bg-[#1f1a16] border border-[#e8a756]/30 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#e8a756] shadow-inner">
-                <img src="/logo.png" alt="WE'TU" className="w-4 h-4 rounded-full bg-white object-cover" />
-                Layanan Antar Khusus Komplek PHR Riau
-              </div>
-
-              {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-white">
-                Kopi Berkualitas WE'TU, Tiba Segar Langsung di{' '}
-                <span className="gold-gradient-text block sm:inline">
-                  Meja Kerjamu.
-                </span>
-              </h1>
-
-              {/* Description */}
-              <p className="text-base sm:text-lg text-[#a6998b] max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                Tak perlu panas-panasan keluar gedung atau antre berlama-lama.
-                Pesan kopi racikan barista kami lewat WhatsApp, kurir runner WE'TU
-                mengantar langsung sampai ke lantai dan ruangan kerja Anda.
-              </p>
-
-              {/* CTA Row */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <a
-                  href="#menu"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 gold-gradient-bg text-black font-extrabold px-7 py-4 rounded-xl text-base shadow-xl shadow-[#e8a756]/20 hover:opacity-95 transition-all group"
-                >
-                  <Icon name="coffee" className="w-5 h-5" />
-                  <span>Lihat Pilihan Menu</span>
-                  <Icon name="arrowRight" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </a>
-
-                <a
-                  href="#tracker"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#171412] hover:bg-[#201c18] border border-white/10 hover:border-[#e8a756]/40 text-[#faf5ee] px-6 py-4 rounded-xl text-base font-semibold transition-all"
-                >
-                  <Icon name="bike" className="w-5 h-5 text-[#e8a756]" />
-                  <span>Lacak Pesanan Berjalan</span>
-                </a>
-              </div>
-
-              {/* Key Value Highlights */}
-              <div className="pt-6 border-t border-white/[0.08] grid grid-cols-3 gap-4 text-left">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#e8a756] font-bold text-sm">
-                    <Icon name="clock" className="w-4 h-4" />
-                    <span>15–25 Menit</span>
-                  </div>
-                  <p className="text-xs text-[#a6998b]">
-                    Estimasi tiba sampai di ruangan kerja Anda.
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#e8a756] font-bold text-sm">
-                    <Icon name="building" className="w-4 h-4" />
-                    <span>Semua Gedung</span>
-                  </div>
-                  <p className="text-xs text-[#a6998b]">
-                    Rokan, Lancang, Main Office & sekitarnya.
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#e8a756] font-bold text-sm">
-                    <Icon name="star" className="w-4 h-4 fill-[#e8a756]" />
-                    <span>4.9 / 5.0</span>
-                  </div>
-                  <p className="text-xs text-[#a6998b]">
-                    Pilihan 2.000+ pekerja & staf PHR.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Visual Card */}
-            <div className="lg:col-span-5 relative">
-              {/* Product Showcase Card */}
-              <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl overflow-hidden border border-[#e8a756]/25 bg-gradient-to-b from-[#1f1a16] to-[#120f0d] p-3 shadow-2xl">
-                {/* Main Image Frame */}
-                <div className="relative h-96 sm:h-[420px] rounded-2xl overflow-hidden group">
-                  <img
-                    src="https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=1000&q=85"
-                    alt="Aren Cloud Latte Signature Wetu Kopi"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent"></div>
-
-                  {/* Top Tag */}
-                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/20 text-[#e8a756] px-3 py-1.5 rounded-full text-xs font-bold">
-                    <img src="/logo.png" alt="WE'TU" className="w-4 h-4 rounded-full bg-white object-cover" />
-                    <span>Signature WE'TU Hari Ini</span>
-                  </div>
-
-                  {/* Bottom Info Overlay */}
-                  <div className="absolute bottom-4 left-4 right-4 bg-[#14110f]/90 backdrop-blur-md border border-[#e8a756]/30 p-4 rounded-xl">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="text-[11px] uppercase tracking-wider text-[#e8a756] font-bold block">
-                          Menu Paling Dicari
-                        </span>
-                        <h4 className="text-lg font-extrabold text-white">
-                          Aren Cloud Latte
-                        </h4>
-                        <p className="text-xs text-[#a6998b] mt-0.5 line-clamp-1">
-                          Gula aren murni, creamy milk, double shot espresso
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs text-[#a6998b] block">Harga</span>
-                        <span className="text-base font-extrabold text-[#e8a756]">
-                          Rp 22.000
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Badge 1 - Delivery */}
-                <div className="absolute -left-4 top-16 bg-[#1a1512]/95 border border-[#e8a756]/40 p-3.5 rounded-2xl shadow-xl flex items-center gap-3 backdrop-blur-md animate-float">
-                  <div className="w-10 h-10 rounded-xl bg-[#e8a756]/15 text-[#e8a756] flex items-center justify-center">
-                    <Icon name="bike" className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">
-                      Gratis Antar Ruangan
-                    </span>
-                    <span className="text-[11px] text-[#a6998b]">
-                      Min. 3 cup satu divisi
-                    </span>
-                  </div>
-                </div>
-
-                {/* Floating Badge 2 - Courier Speed */}
-                <div className="absolute -right-4 bottom-24 bg-[#1a1512]/95 border border-[#25d366]/40 p-3.5 rounded-2xl shadow-xl flex items-center gap-3 backdrop-blur-md animate-float-delayed">
-                  <div className="w-10 h-10 rounded-xl bg-[#25d366]/15 text-[#25d366] flex items-center justify-center">
-                    <Icon name="clock" className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">
-                      Termos Khusus Es
-                    </span>
-                    <span className="text-[11px] text-[#25d366]">
-                      Es tetap utuh & dingin
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <section className="relative overflow-hidden pt-20 pb-32">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[#0c0a09]">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#e8a756]/10 blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#a46824]/10 blur-[120px]" />
           </div>
         </div>
-      </section>
 
-      {/* INTERACTIVE ORDER TRACKER SECTION */}
-      <section
-        id="tracker"
-        className="py-12 bg-gradient-to-b from-[#120f0d] via-[#171310] to-[#0c0a09] border-y border-white/[0.06]"
-      >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-[#e8a756]/25 shadow-2xl relative overflow-hidden">
-            {/* Header info */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
-              <div>
-                <div className="inline-flex items-center gap-2 text-xs font-bold text-[#e8a756] uppercase tracking-wider mb-1">
-                  <Icon name="bike" className="w-4 h-4" /> Live Tracking Pesanan PHR
-                </div>
-                <h3 className="text-2xl font-extrabold text-white">
-                  Lacak Posisi Kopi Kamu Sekarang
-                </h3>
-                <p className="text-sm text-[#a6998b]">
-                  Masukkan ID Pesanan dari konfirmasi WhatsApp untuk memantau kurir secara real-time.
-                </p>
-              </div>
-
-              {/* Quick Preset Buttons for testing */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-[#a6998b] font-medium mr-1">
-                  Contoh Cepat:
-                </span>
-                <button
-                  onClick={() => {
-                    setTrackingInput('WTU-2601')
-                    handleTrackOrder('WTU-2601')
-                  }}
-                  className="text-xs bg-[#251f1a] hover:bg-[#e8a756] hover:text-black text-[#e8a756] border border-[#e8a756]/30 px-2.5 py-1.5 rounded-lg transition-colors font-mono font-bold"
-                >
-                  WTU-2601 (Rokan)
-                </button>
-                <button
-                  onClick={() => {
-                    setTrackingInput('WTU-8840')
-                    handleTrackOrder('WTU-8840')
-                  }}
-                  className="text-xs bg-[#251f1a] hover:bg-[#e8a756] hover:text-black text-[#e8a756] border border-[#e8a756]/30 px-2.5 py-1.5 rounded-lg transition-colors font-mono font-bold"
-                >
-                  WTU-8840 (Lancang)
-                </button>
-              </div>
-            </div>
-
-            {/* Input Bar */}
-            <div className="pt-6 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Icon name="search" className="w-5 h-5 text-[#a6998b] absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Masukkan ID Pesanan, contoh: WTU-2601..."
-                  value={trackingInput}
-                  onChange={(e) => setTrackingInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
-                  className="w-full bg-[#0c0a09] border border-white/15 focus:border-[#e8a756] rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-[#685d53] focus:outline-none transition-colors"
-                />
-              </div>
-              <button
-                onClick={() => handleTrackOrder()}
-                className="gold-gradient-bg text-black font-bold px-7 py-3.5 rounded-xl text-sm hover:opacity-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#e8a756]/15 shrink-0"
-              >
-                <span>Lacak Pesanan</span>
-                <Icon name="arrowRight" className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Live Result Card (Simulated) */}
-            {activeTracking && (
-              <div className="mt-8 bg-[#0c0a09]/90 border border-[#e8a756]/30 rounded-2xl p-6 animate-slide-down">
-                {/* Result Top Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-[#e8a756] tracking-wider uppercase">
-                        ID: #{activeTracking.id}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 bg-[#25d366]/15 text-[#25d366] text-xs font-semibold px-2 py-0.5 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#25d366] animate-pulse"></span>
-                        {activeTracking.step === 3
-                          ? 'Kurir Sedang Mengantar'
-                          : activeTracking.step === 2
-                          ? 'Sedang Diracik Barista'
-                          : 'Pesanan Diterima'}
-                      </span>
-                    </div>
-                    <h4 className="text-xl font-bold text-white">
-                      Tujuan: {activeTracking.gedung} ({activeTracking.lantai})
-                    </h4>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <span className="text-xs text-[#a6998b] block">
-                        Estimasi Tiba
-                      </span>
-                      <span className="text-lg font-extrabold text-[#e8a756]">
-                        {activeTracking.eta}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stepper Progress */}
-                <div className="py-8 grid grid-cols-2 md:grid-cols-4 gap-6 relative">
-                  {[
-                    { label: 'Pesanan Diterima', time: '08:40 WIB', icon: 'checkCircle' as IconName, stepNum: 1 },
-                    { label: 'Sedang Diracik', time: '08:48 WIB', icon: 'coffee' as IconName, stepNum: 2 },
-                    { label: 'Kurir OTW Ruangan', time: 'Sekarang', icon: 'bike' as IconName, stepNum: 3 },
-                    { label: 'Tiba di Meja', time: activeTracking.eta, icon: 'mapPin' as IconName, stepNum: 4 },
-                  ].map((s, idx) => {
-                    const isDone = s.stepNum <= activeTracking.step
-                    const isCurrent = s.stepNum === activeTracking.step
-                    return (
-                      <div key={idx} className="relative flex flex-col items-center text-center">
-                        <div
-                          className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-colors ${
-                            isDone
-                              ? 'bg-[#e8a756] text-black shadow-lg shadow-[#e8a756]/30'
-                              : 'bg-[#1e1916] text-[#6b5e52] border border-white/5'
-                          } ${isCurrent ? 'ring-4 ring-[#e8a756]/30' : ''}`}
-                        >
-                          <Icon name={s.icon} className="w-6 h-6" />
-                        </div>
-                        <span
-                          className={`text-xs font-bold block ${
-                            isDone ? 'text-white' : 'text-[#6b5e52]'
-                          }`}
-                        >
-                          {s.label}
-                        </span>
-                        <span className="text-[11px] text-[#a6998b] mt-0.5">
-                          {s.time}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Courier info card */}
-                <div className="bg-[#181411] border border-white/10 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="w-10 h-10 rounded-full bg-[#2a221b] border border-[#e8a756]/30 flex items-center justify-center text-[#e8a756] font-bold text-sm">
-                      {activeTracking.courierName.charAt(0)}
-                    </div>
-                    <div>
-                      <span className="text-xs text-[#a6998b] block">Kurir Pengantar Ruangan</span>
-                      <span className="text-sm font-bold text-white">
-                        {activeTracking.courierName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <button
-                      onClick={() =>
-                        directOrderWhatsApp(
-                          `Update pesanan #${activeTracking.id} untuk ${activeTracking.gedung}`,
-                        )
-                      }
-                      className="inline-flex items-center gap-2 bg-[#25d366]/15 hover:bg-[#25d366]/25 text-[#25d366] border border-[#25d366]/30 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      <Icon name="message" className="w-4 h-4" /> Hubungi Kurir (WA)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#1c1815] border border-[#e8a756]/30 px-3 py-1 rounded-full text-xs font-bold text-[#e8a756] mb-6 animate-fade-in">
+            <Icon name="sparkles" className="w-3 h-3" />
+            <span>Specialty Coffee for PHR Professionals</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-6 leading-tight animate-slide-up">
+            Awali Hari <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e8a756] to-[#fcd4a3]">
+              Lebih Produktif
+            </span>
+          </h1>
+          <p className="text-[#a6998b] text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            Nikmati racikan kopi kualitas premium yang diantar langsung ke meja kerja Anda di seluruh gedung Pertamina Hulu Rokan.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <a
+              href="#menu"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl gold-gradient-bg text-black font-extrabold text-lg shadow-xl shadow-[#e8a756]/20 hover:scale-105 transition-transform flex items-center justify-center gap-2 group"
+            >
+              <span>Pesan Sekarang</span>
+              <Icon name="arrowRight" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </a>
+            <a
+              href="#tracker"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#1c1815] text-white font-bold text-lg border border-white/10 hover:bg-[#25201c] transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon name="clock" className="w-5 h-5 text-[#e8a756]" />
+              <span>Lacak Pesanan</span>
+            </a>
           </div>
         </div>
       </section>
 
       {/* MENU SECTION */}
-      <section id="menu" className="py-20 md:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-[#e8a756] uppercase tracking-wider block">
-              Pilihan Racikan Barista
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-              Menu Kopi & Cemilan Hari Ini
-            </h2>
-            <p className="text-sm text-[#a6998b] max-w-xl">
-              Diracik segar tiap pesanan masuk. Bisa request tingkat gula (Normal / Less / No Sugar) dan pilihan suhu.
-            </p>
+      <section id="menu" className="py-24 bg-[#0f0d0b]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div className="space-y-2">
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                Katalog <span className="text-[#e8a756]">Menu</span>
+              </h2>
+              <p className="text-[#a6998b] font-medium">
+                Pilih teman kerja terbaikmu hari ini.
+              </p>
+            </div>
+            
+            {/* Search & Filter */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b5e52]" />
+                <input
+                  type="text"
+                  placeholder="Cari kopi..."
+                  className="bg-[#1c1815] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-[#6b5e52] focus:outline-none focus:border-[#e8a756] transition-colors w-full sm:w-64"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                      selectedCategory === cat
+                        ? 'bg-[#e8a756] text-black shadow-lg shadow-[#e8a756]/20'
+                        : 'bg-[#1c1815] text-[#a6998b] border border-white/10 hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Search bar inside menu */}
-          <div className="relative w-full md:w-72">
-            <Icon name="search" className="w-4 h-4 text-[#a6998b] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cari kopi, caramel, v60..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#171412] border border-white/10 focus:border-[#e8a756] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#786b5e] focus:outline-none transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#a6998b] hover:text-white"
-              >
-                <Icon name="x" className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Category Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const count =
-              cat === 'Semua'
-                ? PRODUCTS.length
-                : PRODUCTS.filter((p) => p.category === cat).length
-            return (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
-                  selectedCategory === cat
-                    ? 'bg-[#e8a756] text-black shadow-lg shadow-[#e8a756]/20'
-                    : 'bg-[#171412] text-[#a6998b] hover:text-white hover:bg-[#201c18] border border-white/5'
-                }`}
-              >
-                <span>{cat}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
-                    selectedCategory === cat
-                      ? 'bg-black/20 text-black'
-                      : 'bg-white/10 text-[#a6998b]'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Product Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-16 bg-[#14110f] rounded-2xl border border-white/5">
-            <Icon name="coffee" className="w-12 h-12 text-[#a6998b] mx-auto mb-3 opacity-40" />
-            <h4 className="text-base font-bold text-white">Menu tidak ditemukan</h4>
-            <p className="text-xs text-[#a6998b] mt-1">
-              Coba kata kunci lain atau pilih kategori "Semua".
-            </p>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="glass-panel glass-panel-hover rounded-2xl overflow-hidden flex flex-col group"
+                className="group bg-[#171412] border border-white/5 rounded-3xl overflow-hidden hover:border-[#e8a756]/40 transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-2xl hover:shadow-[#e8a756]/10"
               >
-                {/* Image Frame */}
-                <div className="relative h-56 overflow-hidden">
+                {/* Image Wrapper */}
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#14110f] via-transparent to-transparent"></div>
-
-                  {/* Badge */}
                   {product.badge && (
-                    <span className="absolute top-3 left-3 bg-[#e8a756] text-black text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md">
+                    <div className="absolute top-4 left-4 bg-[#e8a756] text-black text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider shadow-lg">
                       {product.badge}
-                    </span>
+                    </div>
                   )}
-
-                  {/* Rating Pill */}
-                  <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1">
-                    <Icon name="star" className="w-3.5 h-3.5 fill-[#e8a756] text-[#e8a756]" />
+                  <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-bold text-white">
+                    <Icon name="star" className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                     <span>{product.rating}</span>
-                  </div>
-
-                  {/* Caffeine indicator */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                    <span className="text-[10px] bg-black/70 backdrop-blur-md text-[#d6ccbf] px-2 py-0.5 rounded-md font-medium border border-white/10">
-                      {product.caffeine} Caffeine
-                    </span>
+                    <span className="text-white/50 font-normal">({product.reviewsCount})</span>
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-[#e8a756]">
-                        {product.category}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-white group-hover:text-[#e8a756] transition-colors">
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <h3 className="font-bold text-lg text-white group-hover:text-[#e8a756] transition-colors leading-tight">
                       {product.name}
                     </h3>
-
-                    <p className="text-xs text-[#a6998b] leading-relaxed line-clamp-2">
-                      {product.note}
-                    </p>
-
-                    {/* Flavour tags */}
-                    <div className="pt-2 flex flex-wrap gap-1.5">
-                      {product.tags.map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] bg-[#221c17] text-[#c7baa8] px-2 py-0.5 rounded font-medium"
-                        >
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
+                    <span className="text-lg font-black text-white whitespace-nowrap">
+                      Rp {product.price.toLocaleString('id-ID')}
+                    </span>
                   </div>
-
-                  {/* Card Footer: Price & Actions */}
-                  <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] text-[#a6998b] block font-medium">
-                        Harga Satuan
+                  <p className="text-sm text-[#a6998b] line-clamp-2 leading-relaxed">
+                    {product.note}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.tags.map((tag) => (
+                      <span key={tag} className="text-[10px] font-medium bg-white/5 text-[#d6ccbf] px-2 py-0.5 rounded-md border border-white/5">
+                        {tag}
                       </span>
-                      <span className="text-lg font-extrabold text-white">
-                        Rp {product.price.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Direct WA button */}
-                      <button
-                        onClick={() => directOrderWhatsApp(product.name)}
-                        title="Pesan langsung lewat WhatsApp"
-                        className="w-10 h-10 rounded-xl bg-[#1f1a16] hover:bg-[#25d366]/20 border border-white/10 hover:border-[#25d366]/40 text-[#25d366] flex items-center justify-center transition-colors"
-                      >
-                        <Icon name="message" className="w-4 h-4" />
-                      </button>
-
-                      {/* Add to Team Cart */}
-                      <button
-                        onClick={() => {
-                          setCustomizingProduct(product)
-                        }}
-                        className="gold-gradient-bg text-black font-extrabold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 hover:opacity-95 transition-all shadow-md shadow-[#e8a756]/15"
-                      >
-                        <Icon name="plus" className="w-4 h-4 stroke-[3]" />
-                        <span>Pesan</span>
-                      </button>
-                    </div>
+                    ))}
+                    <span className="text-[10px] font-bold bg-[#e8a756]/10 text-[#e8a756] px-2 py-0.5 rounded-md border border-[#e8a756]/20">
+                      {product.caffeine} Caffeine
+                    </span>
                   </div>
+                  <button
+                    onClick={() => setCustomizingProduct(product)}
+                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-[#e8a756] hover:text-black text-white font-bold text-sm transition-all flex items-center justify-center gap-2 group/btn border border-white/10 hover:border-transparent"
+                  >
+                    <Icon name="plus" className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                    <span>Tambah Pesanan</span>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
-        )}
 
-        {/* Office Bulk / Meeting Catering Box Banner */}
-        <div className="mt-16 bg-gradient-to-r from-[#201711] via-[#2c2018] to-[#1a130f] border border-[#e8a756]/30 rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-2xl">
-          <div className="grid md:grid-cols-12 gap-8 items-center relative z-10">
-            <div className="md:col-span-8 space-y-3">
-              <div className="inline-flex items-center gap-2 bg-[#e8a756]/15 text-[#e8a756] border border-[#e8a756]/30 px-3 py-1 rounded-full text-xs font-bold">
-                <Icon name="sparkles" className="w-3.5 h-3.5" /> Paket Meeting & Rapat Divisi PHR
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-20 space-y-4">
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                <Icon name="search" className="w-10 h-10 text-[#6b5e52]" />
               </div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
-                Butuh Kopi untuk Rapat Kantor atau Event?
-              </h3>
-              <p className="text-sm text-[#d6ccbf] leading-relaxed max-w-2xl">
-                Tersedia paket <strong>Meeting Box (5 atau 10 cup)</strong> dan{' '}
-                <strong>Coffee Dispenser 5 Liter</strong> (sudah termasuk cup, sedotan ramah lingkungan, gula sachet, & creamer). Kurir kami siap mengantar tepat waktu sebelum meeting dimulai.
-              </p>
-              <div className="pt-2 flex flex-wrap gap-4 text-xs font-semibold text-[#e8a756]">
-                <span>✓ Invoice & Kwitansi Resmi</span>
-                <span>✓ Bisa bayar transfer / invoice kantor</span>
-                <span>✓ Bebas mix varian rasa</span>
-              </div>
+              <h3 className="text-xl font-bold text-white">Menu tidak ditemukan</h3>
+              <p className="text-[#a6998b]">Coba keyword lain atau ganti kategori.</p>
             </div>
-
-            <div className="md:col-span-4 flex flex-col sm:flex-row md:flex-col gap-3 justify-center">
-              <button
-                onClick={() =>
-                  directOrderWhatsApp(
-                    'Paket Meeting Box Kopi Wetu untuk Rapat Divisi Kantor',
-                  )
-                }
-                className="w-full inline-flex items-center justify-center gap-2.5 bg-[#25d366] hover:bg-[#20ba59] text-black font-extrabold px-6 py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-[#25d366]/20"
-              >
-                <Icon name="message" className="w-5 h-5 fill-black" />
-                <span>Pesan Paket Rapat (WA)</span>
-              </button>
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#171412] hover:bg-[#221c17] text-white font-semibold px-6 py-3.5 rounded-xl text-sm border border-white/10 transition-colors"
-              >
-                <Icon name="bag" className="w-4 h-4 text-[#e8a756]" />
-                <span>Buka Keranjang Tim</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* DELIVERY AREA & HOW IT WORKS */}
-      <section
-        id="delivery"
-        className="py-20 bg-[#100d0b] border-t border-white/[0.06] relative"
-      >
+      {/* DELIVERY INFO SECTION */}
+      <section id="delivery" className="py-24 bg-[#0c0a09]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-            <span className="text-xs font-bold text-[#e8a756] uppercase tracking-wider block">
-              Pengantaran Khusus Komplek Kantor PHR
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Cara Mudah Kopi Tiba di Ruangan Anda
-            </h2>
-            <p className="text-sm text-[#a6998b]">
-              Tanpa repot, tim kurir runner WE'TU Kopi memiliki akses gedung resmi untuk mengantar sampai ke lantai dan meja kerja Anda.
-            </p>
-          </div>
-
-          {/* 3 Steps */}
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {[
-              {
-                step: '01',
-                title: 'Pilih Menu & Isi Ruangan',
-                desc: 'Pilih kopi favorit Anda atau kumpulkan pesanan teman satu ruangan lewat website ini atau langsung WhatsApp.',
-                icon: 'bag' as IconName,
-              },
-              {
-                step: '02',
-                title: 'Barista Meracik Segar',
-                desc: 'Biji kopi pilihan digiling dan diekstraksi saat pesanan masuk. Dikemas rapi anti-tumpah dengan termos es.',
-                icon: 'coffee' as IconName,
-              },
-              {
-                step: '03',
-                title: 'Kurir Meluncur ke Ruangan',
-                desc: 'Dalam 15-25 menit, kurir kami naik ke lantai tujuan dan menyerahkan kopi langsung ke tangan Anda.',
-                icon: 'bike' as IconName,
-              },
-            ].map((st, i) => (
-              <div
-                key={i}
-                className="bg-[#171412] border border-white/10 rounded-2xl p-8 relative flex flex-col justify-between hover:border-[#e8a756]/30 transition-colors"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-[#e8a756]/10 text-[#e8a756] border border-[#e8a756]/20 flex items-center justify-center">
-                      <Icon name={st.icon} className="w-6 h-6" />
-                    </div>
-                    <span className="text-3xl font-black text-white/10">
-                      {st.step}
-                    </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="relative">
+              <div className="relative z-10 bg-[#1c1815] border border-white/10 p-8 rounded-3xl shadow-2xl space-y-8">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-12 h-12 rounded-2xl bg-[#e8a756] flex items-center justify-center text-black">
+                    <Icon name="bike" className="w-6 h-6" />
                   </div>
-                  <h4 className="text-lg font-bold text-white">{st.title}</h4>
-                  <p className="text-sm text-[#a6998b] leading-relaxed">
-                    {st.desc}
+                  <h3 className="text-2xl font-bold text-white">Sistem Antar Ruangan</h3>
+                </div>
+                <div className="space-y-4">
+                  {PHR_BUILDINGS.map((b, i) => (
+                    <div key={b} className="flex items-center gap-3 text-sm text-[#d6ccbf] group">
+                      <span className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold text-[#e8a756] group-hover:bg-[#e8a756] group-hover:text-black transition-colors">
+                        {i + 1}
+                      </span>
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 bg-[#e8a756]/10 border border-[#e8a756]/20 rounded-2xl">
+                  <p className="text-xs text-[#e8a756] font-bold leading-relaxed">
+                    ✨ Promo: Pesan minimal 3 cup untuk satu ruangan, kami antar GRATIS sampai meja Anda!
                   </p>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Building coverage chips */}
-          <div className="mt-12 p-6 rounded-2xl bg-[#14110f] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#e8a756]/15 text-[#e8a756] flex items-center justify-center shrink-0">
-                <Icon name="mapPin" className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-xs text-[#a6998b] block font-medium">
-                  Area Gedung yang Sudah Terjangkau
-                </span>
-                <span className="text-sm font-bold text-white">
-                  Gedung Rokan, Lancang Kuning, Main Office, & Workshop Duri
-                </span>
-              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#e8a756]/10 blur-[100px] -z-10" />
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {[
-                'Semua Lantai',
-                'Ruang Rapat & Auditorium',
-                'Meja Resepsionis / Lobi',
-                'Mess & Lapangan',
-              ].map((chip) => (
-                <span
-                  key={chip}
-                  className="text-xs bg-[#1f1a16] text-[#d6ccbf] border border-white/10 px-3 py-1.5 rounded-lg"
-                >
-                  ✓ {chip}
-                </span>
-              ))}
+            <div className="space-y-6">
+              <h2 className="text-4xl font-black text-white leading-tight">
+                Kopi Berkualitas, <br />
+                <span className="text-[#e8a756]">Tanpa Perlu Beranjak</span>
+              </h2>
+              <p className="text-[#a6998b] text-lg leading-relaxed">
+                Kami mengerti betapa berharganya waktu Anda di tengah deadline. Itulah kenapa WE'TU hadir untuk mengantar mood booster langsung ke meja kerja Anda di area PHR.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  { icon: 'sparkles', text: 'Barista Runner standby setiap jam kerja.' },
+                  { icon: 'checkCircle', text: 'Pembayaran praktis via QRIS/Transfer.' },
+                  { icon: 'clock', text: 'Estimasi antar cepat & tetap panas/dingin.' },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-white font-medium">
+                    <Icon name={item.icon as IconName} className="w-5 h-5 text-[#e8a756]" />
+                    <span>{item.text}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* REVIEWS & SOCIAL PROOF */}
-      <section
-        id="testimoni"
-        className="py-20 md:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-      >
-        <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
-          <span className="text-xs font-bold text-[#e8a756] uppercase tracking-wider block">
-            Suara Pelanggan Setia
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-            Dipercaya Pekerja & Divisi PHR
+      {/* TRACKER SECTION */}
+      <section id="tracker" className="py-24 bg-[#0f0d0b]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#1c1815] border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-[#a6998b] mb-6">
+            <Icon name="clock" className="w-3 h-3" />
+            <span>Real-time Tracking</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-8">
+            Di mana <span className="text-[#e8a756]">Kopi Anda?</span>
           </h2>
-          <p className="text-sm text-[#a6998b]">
-            Dengarkan apa kata rekan-rekan kerja yang rutin memesan Wetu Kopi setiap hari.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              name: 'Dimas Prasetyo',
-              role: 'Reservoir Engineer · Gedung Rokan Lt. 3',
-              comment:
-                'Penyelamat pas sprint meeting jam 9 pagi! Kopinya beneran bold dan foam Aren Cloud Latte-nya creamy banget. Yang paling keren, kurir hafal ruangan jadi ga ribet telepon berkali-kali.',
-              rating: 5,
-              fav: 'Aren Cloud Latte',
-            },
-            {
-              name: 'Sarah Nabila',
-              role: 'HR Business Partner · Lancang Kuning Lt. 2',
-              comment:
-                'Sering pesan bareng tim 4–5 cup sekaligus biar dapet gratis ongkir. Sea Salt Caramel Macchiato-nya the best di Duri, manisnya seimbang dan ada gurih asinnya.',
-              rating: 5,
-              fav: 'Sea Salt Caramel',
-            },
-            {
-              name: 'Budi Santoso',
-              role: 'Logistik & Drilling Ops · Main Office PHR',
-              comment:
-                'Pengantaran selalu tepat waktu dan es batunya masih utuh dalam termos khusus kurir. Buat yang ga minum kopi, Matcha Cloud-nya juga sangat enak dan pekat!',
-              rating: 5,
-              fav: 'Uji Matcha Cloud',
-            },
-          ].map((rev, i) => (
-            <div
-              key={i}
-              className="glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4 border border-white/10"
+          
+          <div className="relative max-w-md mx-auto mb-12">
+            <input
+              type="text"
+              placeholder="Masukkan Kode Pesanan (Contoh: ROKAN-01)"
+              className="w-full bg-[#1c1815] border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-white placeholder-[#6b5e52] focus:outline-none focus:border-[#e8a756] transition-all shadow-2xl"
+              value={trackingInput}
+              onChange={(e) => setTrackingInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
+            />
+            <button
+              onClick={() => handleTrackOrder()}
+              className="absolute right-2 top-2 bottom-2 px-4 rounded-xl gold-gradient-bg text-black font-bold text-sm transition-transform active:scale-95"
             >
+              Lacak
+            </button>
+          </div>
+
+          {activeTracking && (
+            <div className="bg-[#171412] border border-[#e8a756]/30 rounded-3xl p-8 text-left animate-slide-up shadow-2xl">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <span className="text-[10px] text-[#e8a756] font-bold uppercase tracking-widest">Status Pesanan</span>
+                  <h3 className="text-2xl font-black text-white">{activeTracking.id}</h3>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-[#a6998b] font-bold uppercase block">Estimasi Tiba</span>
+                  <span className="text-xl font-black text-[#e8a756]">{activeTracking.eta}</span>
+                </div>
+              </div>
+
+              <div className="space-y-6 mb-8">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-10 h-10 rounded-full bg-[#e8a756]/20 flex items-center justify-center text-[#e8a756]">
+                    <Icon name="building" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#a6998b] font-medium">Lokasi Antar</p>
+                    <p className="text-sm font-bold text-white">{activeTracking.gedung}, {activeTracking.lantai}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-10 h-10 rounded-full bg-[#e8a756]/20 flex items-center justify-center text-[#e8a756]">
+                    <Icon name="bike" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#a6998b] font-medium">Kurir Barista</p>
+                    <p className="text-sm font-bold text-white">{activeTracking.courierName} ({activeTracking.courierPhone})</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
-                <div className="flex items-center gap-1 text-[#e8a756]">
-                  {[...Array(rev.rating)].map((_, idx) => (
-                    <Icon key={idx} name="star" className="w-4 h-4 fill-[#e8a756]" />
+                <p className="text-xs font-bold text-[#a6998b] uppercase tracking-wider">Item Pesanan:</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {activeTracking.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-white font-medium">
+                      <Icon name="checkCircle" className="w-4 h-4 text-[#25d366]" />
+                      <span>{item}</span>
+                    </div>
                   ))}
                 </div>
-                <p className="text-sm text-[#d6ccbf] leading-relaxed italic">
-                  "{rev.comment}"
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <div>
-                  <h5 className="text-sm font-bold text-white">{rev.name}</h5>
-                  <p className="text-xs text-[#a6998b]">{rev.role}</p>
-                </div>
-                <span className="text-[10px] bg-[#221c17] text-[#e8a756] border border-[#e8a756]/20 px-2 py-1 rounded">
-                  Fav: {rev.fav}
-                </span>
               </div>
             </div>
-          ))}
+          )}
+        </div>
+      </section>
+
+      {/* TESTIMONIAL SECTION */}
+      <section id="testimoni" className="py-24 bg-[#0c0a09]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Kata <span className="text-[#e8a756]">Staff PHR</span></h2>
+            <p className="text-[#a6998b]">Apa kata mereka tentang mood booster harian kami.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: 'Andi Setiawan',
+                role: 'Reservoir Engineer',
+                text: 'Kopi Aren Cloud-nya juara! Sangat membantu buat melek pas lagi review data bor di siang hari. Pengiriman cepat banget.',
+                rating: 5,
+              },
+              {
+                name: 'Sari Rahayu',
+                role: 'Finance Dept',
+                text: 'Suka banget sama Japanese Cold Drip-nya, clean dan seger. Akhirnya gak perlu turun gedung cuma buat cari kopi enak.',
+                rating: 5,
+              },
+              {
+                name: 'Budi Hartono',
+                role: 'IT Support',
+                text: 'Pelayanannya ramah, barista runner-nya hafal jalan pintas antar gedung. Cocok buat pesen barengan satu tim.',
+                rating: 4,
+              },
+            ].map((t, i) => (
+              <div key={i} className="bg-[#171412] border border-white/5 p-8 rounded-3xl relative group hover:border-[#e8a756]/30 transition-all">
+                <div className="flex gap-1 text-yellow-400 mb-4">
+                  {Array.from({ length: 5 }).map((_, star) => (
+                    <Icon
+                      key={star}
+                      name="star"
+                      className={`w-4 h-4 ${star < t.rating ? 'fill-yellow-400' : 'text-white/20'}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[#d6ccbf] italic mb-6 leading-relaxed">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e8a756] to-[#a46824] flex items-center justify-center font-bold text-black text-sm">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold text-sm">{t.name}</h4>
+                    <p className="text-xs text-[#a6998b]">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* FAQ SECTION */}
-      <section
-        id="faq"
-        className="py-16 bg-[#100d0b] border-t border-white/[0.06]"
-      >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 space-y-2">
-            <span className="text-xs font-bold text-[#e8a756] uppercase tracking-wider block">
-              Pertanyaan Umum
-            </span>
-            <h2 className="text-3xl font-extrabold text-white">
-              Sering Ditanyakan (FAQ)
-            </h2>
+      <section id="faq" className="py-24 bg-[#0f0d0b]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Tanya <span className="text-[#e8a756]">Jawab</span></h2>
+            <p className="text-[#a6998b]">Semua yang perlu Anda ketahui tentang WE'TU Kopi.</p>
           </div>
 
           <div className="space-y-4">
             {[
               {
-                q: 'Berapa lama estimasi pengantaran ke ruangan saya?',
-                a: 'Rata-rata 15 sampai 25 menit tergantung lokasi gedung dan antrean racik barista. Untuk jam sibuk (08.00–09.30 WIB), kami sarankan memesan 30 menit sebelum jam meeting dimulai.',
+                q: 'Bagaimana cara memesan untuk satu ruangan?',
+                a: 'Anda bisa menggunakan fitur "Pesanan Kantor Tim" di menu keranjang. Tambahkan semua pesanan rekan kerja Anda, isi detail ruangan, dan kirim via WhatsApp.',
               },
               {
-                q: 'Bagaimana syarat mendapatkan GRATIS Ongkir Pengantaran?',
-                a: 'Cukup memesan minimal 3 cup kopi/minuman dalam satu alamat ruangan/lantai gedung yang sama. Kurir runner kami akan mengantar langsung tanpa biaya ongkir tambahan.',
+                q: 'Apakah benar ada promo gratis ongkir?',
+                a: 'Benar! Untuk pemesanan minimal 3 cup dalam satu alamat ruangan, kami berikan gratis ongkir antar ruangan.',
               },
               {
-                q: 'Apakah bisa request tingkat kemanisan (less sugar) atau susu oat?',
-                a: 'Tentu bisa! Saat memesan lewat website atau WhatsApp, Anda bebas memilih opsi Normal Sugar (100%), Less Sugar (50%), atau No Sugar (0%), serta request es normal, sedikit es, atau versi panas (hot).',
+                q: 'Metode pembayaran apa yang tersedia?',
+                a: 'Kami menerima pembayaran via QRIS (All Payment), Transfer Bank, dan Tunai saat kopi tiba di meja Anda.',
               },
               {
-                q: 'Metode pembayaran apa saja yang diterima?',
-                a: 'Kami menerima QRIS (BCA, Mandiri, BRI, GoPay, OVO, ShopeePay), Transfer Bank, serta Tunai (Cash) saat kurir tiba di ruangan. Untuk kebutuhan kantor/rapat, kami juga menyediakan nota/kwitansi resmi.',
+                q: 'Kapan jam operasional WE\'TU Kopi?',
+                a: 'Kami melayani pesanan dari Senin sampai Jumat, pukul 07:30 hingga 15:00 WIB.',
               },
-            ].map((faq, idx) => (
+            ].map((faq, i) => (
               <div
-                key={idx}
-                className="bg-[#171412] border border-white/10 rounded-xl overflow-hidden transition-colors"
+                key={i}
+                className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
+                  openFaq === i ? 'border-[#e8a756] bg-[#1c1815]' : 'border-white/10 bg-transparent'
+                }`}
               >
                 <button
-                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full p-5 text-left flex items-center justify-between gap-4 font-bold text-sm text-white hover:text-[#e8a756] transition-colors"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left group"
                 >
-                  <span>{faq.q}</span>
+                  <span className={`font-bold text-sm ${openFaq === i ? 'text-white' : 'text-[#d6ccbf]'}`}>
+                    {faq.q}
+                  </span>
                   <Icon
                     name="chevronDown"
-                    className={`w-4 h-4 text-[#e8a756] shrink-0 transition-transform ${
-                      openFaq === idx ? 'rotate-180' : ''
+                    className={`w-4 h-4 transition-transform duration-300 ${
+                      openFaq === i ? 'rotate-180 text-[#e8a756]' : 'text-[#6b5e52]'
                     }`}
                   />
                 </button>
-                {openFaq === idx && (
-                  <div className="px-5 pb-5 text-xs sm:text-sm text-[#a6998b] leading-relaxed border-t border-white/5 pt-3 animate-slide-down">
+                {openFaq === i && (
+                  <div className="p-5 pt-0 text-sm text-[#a6998b] leading-relaxed animate-slide-down">
                     {faq.a}
                   </div>
                 )}
@@ -1746,7 +1375,7 @@ export default function App() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: Lantai 3, Ruang Tim Drilling 302..."
+                        placeholder="Cont contoh: Lantai 3, Ruang Tim Drilling 302..."
                         value={roomInfo}
                         onChange={(e) => setRoomInfo(e.target.value)}
                         className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none"
