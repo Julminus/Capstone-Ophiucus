@@ -897,6 +897,48 @@ export default function App() {
       timestamp: new Date().toISOString(),
     }
 
+    // 1. Kirim pesan WhatsApp otomatis ke customer via Fonnte Gateway
+    try {
+      let cleanPhone = customerPhone.replace(/\D/g, '')
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.slice(1)
+      } else if (cleanPhone.startsWith('8')) {
+        cleanPhone = '62' + cleanPhone
+      }
+
+      const waMessage =
+        `Halo Kak *${customerName.trim()}*! ☕✨\n\n` +
+        `Pesanan Anda (*#${orderId}*) di *WE'TU Kopi* telah kami terima di sistem!\n\n` +
+        `📋 *RINCIAN PESANAN:*\n${orderListText}\n\n` +
+        `--------------------------------\n` +
+        `*Subtotal:* Rp ${totalCartPrice.toLocaleString('id-ID')}\n` +
+        `*Ongkir:* ${ongkirText}\n` +
+        `*TOTAL TAGIHAN:* Rp ${totalWithOngkir.toLocaleString('id-ID')}\n` +
+        `--------------------------------\n\n` +
+        `📍 *Alamat Antar:* ${deliveryAddress.trim()}\n` +
+        (customerNotes.trim() ? `📝 *Catatan:* ${customerNotes.trim()}\n\n` : '\n') +
+        `💳 *METODE PEMBAYARAN:*\n` +
+        `• Scan QRIS atau Transfer Bank ke Rekening WE'TU Kopi.\n` +
+        `• Atau bayar Tunai (*CASH*) saat kurir barista tiba di lokasi Anda.\n\n` +
+        `Pesanan Anda sedang dipersiapkan oleh Barista kami. Mohon ditunggu ya! 🙏🚀`
+
+      const fonnteFormData = new FormData()
+      fonnteFormData.append('target', cleanPhone)
+      fonnteFormData.append('message', waMessage)
+      fonnteFormData.append('countryCode', '62')
+
+      await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        headers: {
+          Authorization: 'sa7m2H6MRrTnZLCtdevc',
+        },
+        body: fonnteFormData,
+      })
+    } catch (fonnteError) {
+      console.error('Gagal mengirim WhatsApp via Fonnte:', fonnteError)
+    }
+
+    // 2. Kirim pencatatan ke Google Sheets
     try {
       const SHEET_API_URL =
         'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec'
