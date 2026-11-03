@@ -27,14 +27,12 @@ interface CartItem {
   quantity: number
 }
 
-interface TrackingInfo {
-  id: string
-  gedung: string
-  lantai: string
-  courierName: string
-  courierPhone: string
-  step: number
-  eta: string
+interface OrderSuccessData {
+  orderId: string
+  name: string
+  phone: string
+  total: number
+  address: string
   items: string[]
 }
 
@@ -634,6 +632,96 @@ function MapPickerModal({
   )
 }
 
+function OrderSuccessModal({
+  order,
+  onClose,
+}: {
+  order: OrderSuccessData | null
+  onClose: () => void
+}) {
+  if (!order) return null
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#14110f] border border-[#e8a756]/30 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 sm:p-7 relative text-center">
+        {/* Glow Header */}
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#25d366]/20 to-[#e8a756]/20 text-[#25d366] flex items-center justify-center mx-auto mb-4 border border-[#25d366]/30 shadow-lg shadow-[#25d366]/10">
+          <Icon name="checkCircle" className="w-8 h-8" />
+        </div>
+
+        <span className="inline-block bg-[#e8a756]/15 text-[#e8a756] border border-[#e8a756]/30 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase mb-2">
+          Pesanan #{order.orderId} Terkirim
+        </span>
+
+        <h3 className="text-2xl font-black text-white mb-2">
+          Pesanan Berhasil Dicatat! ☕
+        </h3>
+
+        <div className="bg-[#1a1613] border border-white/10 rounded-2xl p-4 my-4 text-left space-y-3">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-white/5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#25d366] animate-pulse shrink-0"></span>
+            <p className="text-xs text-white">
+              Chatbot kami akan otomatis mengirim pesan rincian pesanan & pembayaran ke WhatsApp:
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-xl border border-white/5">
+            <span className="text-[11px] text-[#a6998b]">Nomor WhatsApp:</span>
+            <span className="text-xs font-bold text-[#25d366] font-mono">{order.phone}</span>
+          </div>
+
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between text-[#a6998b]">
+              <span>Nama Pemesan</span>
+              <span className="text-white font-medium">{order.name}</span>
+            </div>
+            <div className="flex justify-between text-[#a6998b]">
+              <span>Total Tagihan</span>
+              <span className="text-[#e8a756] font-bold">Rp {order.total.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Steps */}
+        <div className="space-y-2 text-left bg-black/20 rounded-xl p-3.5 mb-5 border border-white/5">
+          <div className="flex items-center gap-2 text-xs text-[#d6ccbf]">
+            <span className="w-4 h-4 rounded-full bg-[#25d366] text-black font-bold flex items-center justify-center text-[10px] shrink-0">✓</span>
+            <span>Pesanan masuk ke sistem antrean</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[#e8a756]">
+            <span className="w-4 h-4 rounded-full bg-[#e8a756]/20 border border-[#e8a756] text-[#e8a756] font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+            <span>Chatbot mengirim konfirmasi ke WA Anda</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[#a6998b]">
+            <span className="w-4 h-4 rounded-full bg-white/10 text-[#a6998b] font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
+            <span>Barista meracik & pesanan diantar</span>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="space-y-2">
+          <button
+            onClick={onClose}
+            className="w-full gold-gradient-bg text-black font-extrabold py-3.5 rounded-xl text-xs hover:opacity-95 transition-all shadow-lg shadow-[#e8a756]/20 cursor-pointer"
+          >
+            Selesai & Kembali ke Katalog
+          </button>
+
+          <a
+            href={`https://wa.me/6282295676595?text=${encodeURIComponent(`Halo WE'TU Kopi, saya baru saja melakukan pemesanan #${order.orderId} atas nama ${order.name}. Ingin konfirmasi pesanan.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-2.5 text-center text-xs text-[#a6998b] hover:text-white flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Icon name="message" className="w-3.5 h-3.5 text-[#25d366]" />
+            <span>Belum terima pesan bot? Chat Admin Manual</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua')
@@ -654,7 +742,10 @@ export default function App() {
   // Delivery Form State
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
+  const [orderSuccessModal, setOrderSuccessModal] = useState<OrderSuccessData | null>(null)
 
   const handleLocationPicked = (loc: {
     address: string
@@ -666,10 +757,6 @@ export default function App() {
     setDeliveryAddress(`${loc.address}\nLink Maps: ${loc.mapsUrl}`)
     showToast('📍 Titik lokasi peta berhasil disetel!')
   }
-
-  // Order Tracking State
-  const [trackingInput, setTrackingInput] = useState('')
-  const [activeTracking, setActiveTracking] = useState<TrackingInfo | null>(null)
 
   // Item customization modal / drawer
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null)
@@ -754,116 +841,94 @@ export default function App() {
     showToast('Item dihapus dari pesanan')
   }
 
-  // Quick Direct WhatsApp order for single item
-  const directOrderWhatsApp = (productName: string) => {
-    const text = encodeURIComponent(
-      `Halo WE'TU Kopi! ☕\nSaya ingin pesan langsung: *${productName}*\nMohon diantar ke area kantor PHR.\n(Bisa minta info menu & estimasi waktu?)`,
-    )
-    window.open(`https://wa.me/6282295676595?text=${text}`, '_blank')
-  }
+  // Submit Order directly to System & Trigger WA Bot
+  const submitOrder = async () => {
+    if (cart.length === 0) {
+      showToast('⚠️ Keranjang pesanan masih kosong!')
+      return
+    }
 
-  // Send Entire Cart via WhatsApp
-  const sendCartToWhatsApp = async () => {
-    if (cart.length === 0) return
+    if (!customerName.trim()) {
+      showToast('⚠️ Mohon isi Nama Pemesan!')
+      return
+    }
 
-    let orderList = cart
+    if (!customerPhone.trim()) {
+      showToast('⚠️ Mohon isi Nomor WhatsApp untuk konfirmasi bot!')
+      return
+    }
+
+    if (!deliveryAddress.trim()) {
+      showToast('⚠️ Mohon isi Alamat atau tandai titik di peta!')
+      return
+    }
+
+    setIsSubmittingOrder(true)
+
+    const orderId = `WT-${Date.now().toString().slice(-4)}`
+    const orderItemsSummary = cart.map((item) => {
+      const customNote = item.price >= 20000 ? ` (${item.sugar}, ${item.ice})` : ''
+      return `${item.quantity}x ${item.name}${customNote}`
+    })
+
+    const orderListText = cart
       .map((item) => {
         const customNote = item.price >= 20000 ? ` (${item.sugar}, ${item.ice})` : ''
         return `• ${item.quantity}x ${item.name}${customNote} - Rp ${(item.price * item.quantity).toLocaleString('id-ID')}`
       })
       .join('\n')
 
-    const ongkirText = isFreeDelivery ? 'GRATIS (Promo 3+ Cup Ruangan)' : 'Rp 5.000'
+    const ongkirText = isFreeDelivery ? 'GRATIS (Promo 3+ Cup)' : 'Rp 5.000'
     const totalWithOngkir = isFreeDelivery ? totalCartPrice : totalCartPrice + 5000
 
-    const message =
-      `*PESANAN KOPI WE'TU* ☕\n\n` +
-      `*Daftar Pesanan:*\n${orderList}\n\n` +
-      `--------------------------------\n` +
-      `*Subtotal:* Rp ${totalCartPrice.toLocaleString('id-ID')}\n` +
-      `*Ongkir:* ${ongkirText}\n` +
-      `*TOTAL:* Rp ${totalWithOngkir.toLocaleString('id-ID')}\n` +
-      `--------------------------------\n\n` +
-      `*DETAIL PENGANTARAN:*\n` +
-      `📍 Alamat / Link Maps: *${deliveryAddress || 'Belum diisi'}*\n` +
-      `👤 Pemesan: *${customerName || 'Pelanggan'}*\n` +
-      (customerNotes ? `📝 Catatan: ${customerNotes}\n` : '') +
-      `\nMohon konfirmasi pesanan dan nomor rekening / QRIS pembayarannya ya. Terima kasih!`
+    const payload = {
+      orderId,
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim(),
+      phone: customerPhone.trim(),
+      building: deliveryAddress.trim(),
+      roomInfo: deliveryAddress.trim(),
+      address: deliveryAddress.trim(),
+      mapsUrl: selectedPin?.mapsUrl || '',
+      orderDetails: orderListText,
+      totalPrice: `Rp ${totalWithOngkir.toLocaleString('id-ID')}`,
+      totalAmount: totalWithOngkir,
+      customerNotes: customerNotes.trim() || '-',
+      timestamp: new Date().toISOString(),
+    }
 
-    // --- INTEGRASI GOOGLE SHEETS ---
     try {
-      const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec';
-      
-      const payload = {
-        customerName: customerName || 'Pelanggan',
-        building: deliveryAddress || '-',
-        roomInfo: deliveryAddress || '-',
-        address: deliveryAddress || '-',
-        orderDetails: orderList,
-        totalPrice: `Rp ${totalWithOngkir.toLocaleString('id-ID')}`,
-        customerNotes: customerNotes || '-',
-      };
+      const SHEET_API_URL =
+        'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec'
 
-      // Menggunakan mode 'no-cors' karena Google Apps Script melakukan redirect
-      // Kita tidak bisa membaca respon JSON secara detail, tapi request tetap sampai ke server
       await fetch(SHEET_API_URL, {
         method: 'POST',
-        mode: 'no-cors', 
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      });
-      
-      showToast('✅ Pesanan dicatat di sistem & mengirim ke WA...');
+      })
     } catch (error) {
-      console.error('Gagal menyimpan ke Sheets:', error);
-      showToast('⚠️ Pesanan terkirim ke WA, tapi gagal dicatat di sistem.');
+      console.error('Gagal mengirim ke Sheets/Webhook:', error)
     }
-    // ------------------------------
 
-    window.open(`https://wa.me/6282295676595?text=${encodeURIComponent(message)}`, '_blank')
-  }
+    // Tampilkan modal konfirmasi sukses chatbot
+    setOrderSuccessModal({
+      orderId,
+      name: customerName.trim(),
+      phone: customerPhone.trim(),
+      total: totalWithOngkir,
+      address: deliveryAddress.trim(),
+      items: orderItemsSummary,
+    })
 
-  // Handle Order Tracker
-  const handleTrackOrder = (code?: string) => {
-    const idToSearch = (code || trackingInput).trim().toUpperCase()
-    if (!idToSearch) return
-
-    if (idToSearch.includes('ROKAN') || idToSearch.includes('2601')) {
-      setActiveTracking({
-        id: idToSearch,
-        gedung: 'Gedung Rokan',
-        lantai: 'Lantai 3 - Dept. Reservoir Eng.',
-        courierName: 'Ryan Kurnia (Barista Runner)',
-        courierPhone: '0812-9988-7711',
-        step: 3,
-        eta: '± 4 Menit lagi',
-        items: ['2x Aren Cloud Latte (Less Sugar)', '1x French Butter Croissant'],
-      })
-    } else if (idToSearch.includes('LANCANG') || idToSearch.includes('8840')) {
-      setActiveTracking({
-        id: idToSearch,
-        gedung: 'Gedung Lancang Kuning',
-        lantai: 'Lantai 2 - Finance & Budgeting',
-        courierName: 'Dimas Aditya (Barista Runner)',
-        courierPhone: '0813-4455-6677',
-        step: 2,
-        eta: '± 12 Menit lagi',
-        items: ['3x Sea Salt Caramel Macchiato', '2x Sea Salt Choco Cookie'],
-      })
-    } else {
-      setActiveTracking({
-        id: idToSearch,
-        gedung: 'Main Office PHR',
-        lantai: 'Lantai Dasar - Ruang Rapat Mahakam',
-        courierName: 'Ahmad Fauzi (Barista Runner)',
-        courierPhone: '0811-2233-4455',
-        step: 1,
-        eta: '± 18 Menit lagi',
-        items: ['1x Kopi Susu Wetu Klasik', '1x Uji Matcha Cloud'],
-      })
-    }
+    // Bersihkan keranjang & form
+    setCart([])
+    setCustomerNotes('')
+    setIsSubmittingOrder(false)
+    setIsCartOpen(false)
+    showToast('✅ Pesanan diterima! Chatbot WA segera menghubungi Anda.')
   }
 
   return (
@@ -922,10 +987,7 @@ export default function App() {
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#d6ccbf]">
             <a href="#menu" className="hover:text-[#e8a756] transition-colors">
-              Menu Kopi
-            </a>
-            <a href="#tracker" className="hover:text-[#e8a756] transition-colors">
-              Lacak Pesanan
+              Katalog Menu
             </a>
             <a href="#testimoni" className="hover:text-[#e8a756] transition-colors">
               Testimoni
@@ -985,15 +1047,15 @@ export default function App() {
               href="#menu"
               className="w-full sm:w-auto px-8 py-4 rounded-2xl gold-gradient-bg text-black font-extrabold text-lg shadow-xl shadow-[#e8a756]/20 hover:scale-105 transition-transform flex items-center justify-center gap-2 group"
             >
-              <span>Pesan Sekarang</span>
+              <span>Jelajahi Katalog</span>
               <Icon name="arrowRight" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
             <a
-              href="#tracker"
+              href="#testimoni"
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#1c1815] text-white font-bold text-lg border border-white/10 hover:bg-[#25201c] transition-colors flex items-center justify-center gap-2"
             >
-              <Icon name="clock" className="w-5 h-5 text-[#e8a756]" />
-              <span>Lacak Pesanan</span>
+              <Icon name="star" className="w-5 h-5 text-[#e8a756]" />
+              <span>Lihat Testimoni</span>
             </a>
           </div>
         </div>
@@ -1115,84 +1177,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* TRACKER SECTION */}
-      <section id="tracker" className="py-24 bg-[#0f0d0b]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-[#1c1815] border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-[#a6998b] mb-6">
-            <Icon name="clock" className="w-3 h-3" />
-            <span>Real-time Tracking</span>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-8">
-            Di mana <span className="text-[#e8a756]">Kopi Anda?</span>
-          </h2>
-          
-          <div className="relative max-w-md mx-auto mb-12">
-            <input
-              type="text"
-              placeholder="Masukkan Kode Pesanan (Contoh: ROKAN-01)"
-              className="w-full bg-[#1c1815] border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-white placeholder-[#6b5e52] focus:outline-none focus:border-[#e8a756] transition-all shadow-2xl"
-              value={trackingInput}
-              onChange={(e) => setTrackingInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTrackOrder()}
-            />
-            <button
-              onClick={() => handleTrackOrder()}
-              className="absolute right-2 top-2 bottom-2 px-4 rounded-xl gold-gradient-bg text-black font-bold text-sm transition-transform active:scale-95"
-            >
-              Lacak
-            </button>
-          </div>
-
-          {activeTracking && (
-            <div className="bg-[#171412] border border-[#e8a756]/30 rounded-3xl p-8 text-left animate-slide-up shadow-2xl">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <span className="text-[10px] text-[#e8a756] font-bold uppercase tracking-widest">Status Pesanan</span>
-                  <h3 className="text-2xl font-black text-white">{activeTracking.id}</h3>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-[#a6998b] font-bold uppercase block">Estimasi Tiba</span>
-                  <span className="text-xl font-black text-[#e8a756]">{activeTracking.eta}</span>
-                </div>
-              </div>
-
-              <div className="space-y-6 mb-8">
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-[#e8a756]/20 flex items-center justify-center text-[#e8a756]">
-                    <Icon name="building" className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#a6998b] font-medium">Lokasi Antar</p>
-                    <p className="text-sm font-bold text-white">{activeTracking.gedung}, {activeTracking.lantai}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-[#e8a756]/20 flex items-center justify-center text-[#e8a756]">
-                    <Icon name="bike" className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#a6998b] font-medium">Kurir Barista</p>
-                    <p className="text-sm font-bold text-white">{activeTracking.courierName} ({activeTracking.courierPhone})</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-[#a6998b] uppercase tracking-wider">Item Pesanan:</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {activeTracking.items.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-white font-medium">
-                      <Icon name="checkCircle" className="w-4 h-4 text-[#25d366]" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* TESTIMONIAL SECTION */}
       <section id="testimoni" className="py-24 bg-[#0c0a09]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1290,17 +1274,12 @@ export default function App() {
               <ul className="space-y-2 text-xs text-[#a6998b]">
                 <li>
                   <a href="#menu" className="hover:text-[#e8a756] transition-colors">
-                    Menu & Harga
-                  </a>
-                </li>
-                <li>
-                  <a href="#tracker" className="hover:text-[#e8a756] transition-colors">
-                    Lacak Pesanan
+                    Katalog Menu & Harga
                   </a>
                 </li>
                 <li>
                   <a href="#testimoni" className="hover:text-[#e8a756] transition-colors">
-                    Testimoni
+                    Testimoni Pelanggan
                   </a>
                 </li>
               </ul>
@@ -1629,26 +1608,49 @@ export default function App() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-3">
                       <div>
                         <label className="text-xs text-[#a6998b] font-medium block mb-1">
-                          Nama Pemesan:
+                          Nama Pemesan: <span className="text-[#e8a756]">*</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="Nama Anda..."
+                          placeholder="Nama lengkap Anda..."
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                           className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none"
                         />
                       </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs text-[#a6998b] font-medium">
+                            Nomor WhatsApp Pemesan: <span className="text-[#e8a756]">*</span>
+                          </label>
+                          <span className="text-[10px] text-[#25d366] font-bold bg-[#25d366]/15 border border-[#25d366]/30 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#25d366] animate-pulse"></span>
+                            Konfirmasi Bot WA
+                          </span>
+                        </div>
+                        <input
+                          type="tel"
+                          placeholder="Contoh: 081234567890 / 628..."
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none font-mono"
+                        />
+                        <p className="text-[10px] text-[#a6998b] mt-1 leading-relaxed">
+                          *Chatbot kami akan langsung mengirim rincian pesanan dan instruksi pembayaran ke nomor ini.
+                        </p>
+                      </div>
+
                       <div>
                         <label className="text-xs text-[#a6998b] font-medium block mb-1">
-                          Catatan (Opsional):
+                          Catatan Khusus (Opsional):
                         </label>
                         <input
                           type="text"
-                          placeholder="Titip resepsionis / telpon dulu..."
+                          placeholder="Contoh: Titip di resepsionis / minta sedotan..."
                           value={customerNotes}
                           onChange={(e) => setCustomerNotes(e.target.value)}
                           className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none"
@@ -1687,12 +1689,27 @@ export default function App() {
                 </div>
 
                 <button
-                  onClick={sendCartToWhatsApp}
-                  className="w-full bg-[#25d366] hover:bg-[#20ba59] text-black font-extrabold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-xl shadow-[#25d366]/20 transition-all"
+                  type="button"
+                  disabled={isSubmittingOrder}
+                  onClick={submitOrder}
+                  className="w-full gold-gradient-bg hover:opacity-95 text-black font-extrabold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-xl shadow-[#e8a756]/20 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <Icon name="message" className="w-5 h-5 fill-black" />
-                  <span>Kirim Pesanan Lengkap ke WhatsApp →</span>
+                  {isSubmittingOrder ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <span>Memproses Pesanan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="checkCircle" className="w-5 h-5 fill-black" />
+                      <span>Pesan Sekarang (Konfirmasi via Bot WA) →</span>
+                    </>
+                  )}
                 </button>
+
+                <p className="text-[11px] text-center text-[#a6998b] leading-tight">
+                  🤖 Pesanan otomatis dicatat dan chatbot kami akan mengirimkan konfirmasi ke WhatsApp Anda.
+                </p>
               </div>
             )}
           </div>
@@ -1706,6 +1723,12 @@ export default function App() {
         onSelectLocation={handleLocationPicked}
         initialLat={selectedPin ? selectedPin.lat : 1.275}
         initialLng={selectedPin ? selectedPin.lng : 101.2167}
+      />
+
+      {/* Order Success Confirmation Modal (Chatbot Notif) */}
+      <OrderSuccessModal
+        order={orderSuccessModal}
+        onClose={() => setOrderSuccessModal(null)}
       />
     </div>
   )
