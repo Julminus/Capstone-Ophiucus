@@ -338,9 +338,6 @@ export default function App() {
   const [custSugar, setCustSugar] = useState<'Normal' | 'Less Sugar' | 'No Sugar'>('Normal')
   const [custIce, setCustIce] = useState<'Normal Ice' | 'Less Ice' | 'Hot'>('Normal Ice')
 
-  // FAQ Accordion State
-  const [openFaq, setOpenFaq] = useState<number | null>(0)
-
   // Notification helper
   const showToast = (message: string) => {
     setNotification(message)
@@ -424,7 +421,7 @@ export default function App() {
     const text = encodeURIComponent(
       `Halo WE'TU Kopi! ☕\nSaya ingin pesan langsung: *${productName}*\nMohon diantar ke area kantor PHR.\n(Bisa minta info menu & estimasi waktu?)`,
     )
-    window.open(`https://wa.me/6281234567890?text=${text}`, '_blank')
+    window.open(`https://wa.me/6282295676595?text=${text}`, '_blank')
   }
 
   // Send Entire Cart via WhatsApp
@@ -487,7 +484,7 @@ export default function App() {
     }
     // ------------------------------
 
-    window.open(`https://wa.me/6281234567890?text=${encodeURIComponent(message)}`, '_blank')
+    window.open(`https://wa.me/6282295676595?text=${encodeURIComponent(message)}`, '_blank')
   }
 
   // Handle Order Tracker
@@ -589,17 +586,11 @@ export default function App() {
             <a href="#menu" className="hover:text-[#e8a756] transition-colors">
               Menu Kopi
             </a>
-            <a href="#delivery" className="hover:text-[#e8a756] transition-colors">
-              Jangkauan Gedung
-            </a>
             <a href="#tracker" className="hover:text-[#e8a756] transition-colors">
               Lacak Pesanan
             </a>
             <a href="#testimoni" className="hover:text-[#e8a756] transition-colors">
-              Review Staff
-            </a>
-            <a href="#faq" className="hover:text-[#e8a756] transition-colors">
-              Tanya Jawab
+              Testimoni
             </a>
           </nav>
 
@@ -786,62 +777,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* DELIVERY INFO SECTION */}
-      <section id="delivery" className="py-24 bg-[#0c0a09]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <div className="relative z-10 bg-[#1c1815] border border-white/10 p-8 rounded-3xl shadow-2xl space-y-8">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="w-12 h-12 rounded-2xl bg-[#e8a756] flex items-center justify-center text-black">
-                    <Icon name="bike" className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white">Sistem Antar Ruangan</h3>
-                </div>
-                <div className="space-y-4">
-                  {PHR_BUILDINGS.map((b, i) => (
-                    <div key={b} className="flex items-center gap-3 text-sm text-[#d6ccbf] group">
-                      <span className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold text-[#e8a756] group-hover:bg-[#e8a756] group-hover:text-black transition-colors">
-                        {i + 1}
-                      </span>
-                      <span>{b}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-4 bg-[#e8a756]/10 border border-[#e8a756]/20 rounded-2xl">
-                  <p className="text-xs text-[#e8a756] font-bold leading-relaxed">
-                    ✨ Promo: Pesan minimal 3 cup untuk satu ruangan, kami antar GRATIS sampai meja Anda!
-                  </p>
-                </div>
-              </div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#e8a756]/10 blur-[100px] -z-10" />
-            </div>
-
-            <div className="space-y-6">
-              <h2 className="text-4xl font-black text-white leading-tight">
-                Kopi Berkualitas, <br />
-                <span className="text-[#e8a756]">Tanpa Perlu Beranjak</span>
-              </h2>
-              <p className="text-[#a6998b] text-lg leading-relaxed">
-                Kami mengerti betapa berharganya waktu Anda di tengah deadline. Itulah kenapa WE'TU hadir untuk mengantar mood booster langsung ke meja kerja Anda di area PHR.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  { icon: 'sparkles', text: 'Barista Runner standby setiap jam kerja.' },
-                  { icon: 'checkCircle', text: 'Pembayaran praktis via QRIS/Transfer.' },
-                  { icon: 'clock', text: 'Estimasi antar cepat & tetap panas/dingin.' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-white font-medium">
-                    <Icon name={item.icon as IconName} className="w-5 h-5 text-[#e8a756]" />
-                    <span>{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* TRACKER SECTION */}
       <section id="tracker" className="py-24 bg-[#0f0d0b]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -924,7 +859,7 @@ export default function App() {
       <section id="testimoni" className="py-24 bg-[#0c0a09]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Kata <span className="text-[#e8a756]">Staff PHR</span></h2>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Testi<span className="text-[#e8a756]">moni</span></h2>
             <p className="text-[#a6998b]">Apa kata mereka tentang mood booster harian kami.</p>
           </div>
 
@@ -969,64 +904,6 @@ export default function App() {
                     <p className="text-xs text-[#a6998b]">{t.role}</p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section id="faq" className="py-24 bg-[#0f0d0b]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">Tanya <span className="text-[#e8a756]">Jawab</span></h2>
-            <p className="text-[#a6998b]">Semua yang perlu Anda ketahui tentang WE'TU Kopi.</p>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              {
-                q: 'Bagaimana cara memesan untuk satu ruangan?',
-                a: 'Anda bisa menggunakan fitur "Pesanan Kantor Tim" di menu keranjang. Tambahkan semua pesanan rekan kerja Anda, isi detail ruangan, dan kirim via WhatsApp.',
-              },
-              {
-                q: 'Apakah benar ada promo gratis ongkir?',
-                a: 'Benar! Untuk pemesanan minimal 3 cup dalam satu alamat ruangan, kami berikan gratis ongkir antar ruangan.',
-              },
-              {
-                q: 'Metode pembayaran apa yang tersedia?',
-                a: 'Kami menerima pembayaran via QRIS (All Payment), Transfer Bank, dan Tunai saat kopi tiba di meja Anda.',
-              },
-              {
-                q: 'Kapan jam operasional WE\'TU Kopi?',
-                a: 'Kami melayani pesanan dari Senin sampai Jumat, pukul 07:30 hingga 15:00 WIB.',
-              },
-            ].map((faq, i) => (
-              <div
-                key={i}
-                className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
-                  openFaq === i ? 'border-[#e8a756] bg-[#1c1815]' : 'border-white/10 bg-transparent'
-                }`}
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-left group"
-                >
-                  <span className={`font-bold text-sm ${openFaq === i ? 'text-white' : 'text-[#d6ccbf]'}`}>
-                    {faq.q}
-                  </span>
-                  <Icon
-                    name="chevronDown"
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      openFaq === i ? 'rotate-180 text-[#e8a756]' : 'text-[#6b5e52]'
-                    }`}
-                  />
-                </button>
-                {openFaq === i && (
-                  <div className="p-5 pt-0 text-sm text-[#a6998b] leading-relaxed animate-slide-down">
-                    {faq.a}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -1084,13 +961,8 @@ export default function App() {
                   </a>
                 </li>
                 <li>
-                  <a href="#delivery" className="hover:text-[#e8a756] transition-colors">
-                    Jangkauan Gedung
-                  </a>
-                </li>
-                <li>
-                  <a href="#faq" className="hover:text-[#e8a756] transition-colors">
-                    Tanya Jawab (FAQ)
+                  <a href="#testimoni" className="hover:text-[#e8a756] transition-colors">
+                    Testimoni
                   </a>
                 </li>
               </ul>
@@ -1104,7 +976,7 @@ export default function App() {
               <div className="space-y-2 text-xs text-[#a6998b]">
                 <p className="flex items-center gap-2">
                   <Icon name="message" className="w-4 h-4 text-[#25d366]" />
-                  <span>WhatsApp Barista: +62 812-3456-7890</span>
+                  <span>WhatsApp Barista: +62 822-9567-6595</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon name="mapPin" className="w-4 h-4 text-[#e8a756]" />
@@ -1375,7 +1247,7 @@ export default function App() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Cont contoh: Lantai 3, Ruang Tim Drilling 302..."
+                        placeholder="Contoh: Lantai 3, Ruang Tim Drilling 302..."
                         value={roomInfo}
                         onChange={(e) => setRoomInfo(e.target.value)}
                         className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none"
