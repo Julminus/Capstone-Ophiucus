@@ -34,6 +34,7 @@ interface OrderSuccessData {
   total: number
   address: string
   items: string[]
+  waUrl: string
 }
 
 // Zero-dependency pure SVG icons (100% React 19 safe)
@@ -635,87 +636,83 @@ function MapPickerModal({
 function OrderSuccessModal({
   order,
   onClose,
+  onFinish,
 }: {
   order: OrderSuccessData | null
   onClose: () => void
+  onFinish: () => void
 }) {
   if (!order) return null
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#14110f] border border-[#e8a756]/30 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 sm:p-7 relative text-center">
+      <div className="bg-[#14110f] border border-[#25d366]/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 sm:p-7 relative text-center">
         {/* Glow Header */}
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#25d366]/20 to-[#e8a756]/20 text-[#25d366] flex items-center justify-center mx-auto mb-4 border border-[#25d366]/30 shadow-lg shadow-[#25d366]/10">
-          <Icon name="checkCircle" className="w-8 h-8" />
+        <div className="w-16 h-16 rounded-2xl bg-[#25d366]/20 text-[#25d366] flex items-center justify-center mx-auto mb-4 border border-[#25d366]/40 shadow-lg shadow-[#25d366]/15">
+          <Icon name="message" className="w-8 h-8 fill-current" />
         </div>
 
-        <span className="inline-block bg-[#e8a756]/15 text-[#e8a756] border border-[#e8a756]/30 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase mb-2">
-          Pesanan #{order.orderId} Terkirim
+        <span className="inline-block bg-[#25d366]/15 text-[#25d366] border border-[#25d366]/30 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase mb-2">
+          Pesanan #{order.orderId} Disiapkan
         </span>
 
         <h3 className="text-2xl font-black text-white mb-2">
-          Pesanan Berhasil Dicatat! ☕
+          Kirim Chat di WhatsApp! 📲
         </h3>
+        <p className="text-xs text-[#a6998b] leading-relaxed">
+          Rincian pesanan sudah dibuat sesuai template. Pastikan Anda menekan tombol <b className="text-white">Kirim</b> di WhatsApp agar pesanan resmi tercatat & diproses oleh Bot kami.
+        </p>
 
-        <div className="bg-[#1a1613] border border-white/10 rounded-2xl p-4 my-4 text-left space-y-3">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-white/5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#25d366] animate-pulse shrink-0"></span>
-            <p className="text-xs text-white">
-              Chatbot kami akan otomatis mengirim pesan rincian pesanan & pembayaran ke WhatsApp:
-            </p>
+        <div className="bg-[#1a1613] border border-white/10 rounded-2xl p-4 my-4 text-left space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[#a6998b]">Tujuan Bot WA</span>
+            <span className="text-[#25d366] font-bold font-mono">+62 822-9567-6595</span>
           </div>
-
-          <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-xl border border-white/5">
-            <span className="text-[11px] text-[#a6998b]">Nomor WhatsApp:</span>
-            <span className="text-xs font-bold text-[#25d366] font-mono">{order.phone}</span>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[#a6998b]">Pemesan</span>
+            <span className="text-white font-medium">{order.name}</span>
           </div>
-
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between text-[#a6998b]">
-              <span>Nama Pemesan</span>
-              <span className="text-white font-medium">{order.name}</span>
-            </div>
-            <div className="flex justify-between text-[#a6998b]">
-              <span>Total Tagihan</span>
-              <span className="text-[#e8a756] font-bold">Rp {order.total.toLocaleString('id-ID')}</span>
-            </div>
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+            <span className="text-[#a6998b]">Total Tagihan</span>
+            <span className="text-[#e8a756] font-extrabold text-sm">Rp {order.total.toLocaleString('id-ID')}</span>
           </div>
         </div>
 
         {/* Status Steps */}
-        <div className="space-y-2 text-left bg-black/20 rounded-xl p-3.5 mb-5 border border-white/5">
-          <div className="flex items-center gap-2 text-xs text-[#d6ccbf]">
-            <span className="w-4 h-4 rounded-full bg-[#25d366] text-black font-bold flex items-center justify-center text-[10px] shrink-0">✓</span>
-            <span>Pesanan masuk ke sistem antrean</span>
+        <div className="space-y-2 text-left bg-black/20 rounded-xl p-3.5 mb-5 border border-white/5 text-xs">
+          <div className="flex items-center gap-2 text-[#25d366]">
+            <span className="w-4 h-4 rounded-full bg-[#25d366]/20 border border-[#25d366] text-[#25d366] font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+            <span className="font-medium">Kirim chat template pesanan di WhatsApp</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#e8a756]">
-            <span className="w-4 h-4 rounded-full bg-[#e8a756]/20 border border-[#e8a756] text-[#e8a756] font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
-            <span>Chatbot mengirim konfirmasi ke WA Anda</span>
+          <div className="flex items-center gap-2 text-[#a6998b]">
+            <span className="w-4 h-4 rounded-full bg-white/10 text-[#a6998b] font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+            <span>Bot WA mencatat pesanan & membalas konfirmasi</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#a6998b]">
+          <div className="flex items-center gap-2 text-[#a6998b]">
             <span className="w-4 h-4 rounded-full bg-white/10 text-[#a6998b] font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
-            <span>Barista meracik & pesanan diantar</span>
+            <span>Barista meracik & mengantar pesanan Anda</span>
           </div>
         </div>
 
         {/* Buttons */}
-        <div className="space-y-2">
-          <button
-            onClick={onClose}
-            className="w-full gold-gradient-bg text-black font-extrabold py-3.5 rounded-xl text-xs hover:opacity-95 transition-all shadow-lg shadow-[#e8a756]/20 cursor-pointer"
-          >
-            Selesai & Kembali ke Katalog
-          </button>
-
+        <div className="space-y-2.5">
           <a
-            href={`https://wa.me/6282295676595?text=${encodeURIComponent(`Halo WE'TU Kopi, saya baru saja melakukan pemesanan #${order.orderId} atas nama ${order.name}. Ingin konfirmasi pesanan.`)}`}
+            href={order.waUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full py-2.5 text-center text-xs text-[#a6998b] hover:text-white flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full bg-[#25d366] hover:bg-[#20ba59] text-black font-extrabold py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#25d366]/20 transition-all cursor-pointer"
           >
-            <Icon name="message" className="w-3.5 h-3.5 text-[#25d366]" />
-            <span>Belum terima pesan bot? Chat Admin Manual</span>
+            <Icon name="message" className="w-4 h-4 fill-black" />
+            <span>Buka / Kirim WhatsApp Lagi</span>
           </a>
+
+          <button
+            type="button"
+            onClick={onFinish}
+            className="w-full bg-white/10 hover:bg-white/15 text-white font-bold py-3 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Selesai & Bersihkan Keranjang
+          </button>
         </div>
       </div>
     </div>
@@ -744,7 +741,6 @@ export default function App() {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
   const [orderSuccessModal, setOrderSuccessModal] = useState<OrderSuccessData | null>(null)
 
   const handleLocationPicked = (loc: {
@@ -841,8 +837,8 @@ export default function App() {
     showToast('Item dihapus dari pesanan')
   }
 
-  // Submit Order directly to System & Trigger WA Bot
-  const submitOrder = async () => {
+  // Submit Order via WhatsApp Template
+  const submitOrder = () => {
     if (cart.length === 0) {
       showToast('⚠️ Keranjang pesanan masih kosong!')
       return
@@ -853,17 +849,10 @@ export default function App() {
       return
     }
 
-    if (!customerPhone.trim()) {
-      showToast('⚠️ Mohon isi Nomor WhatsApp untuk konfirmasi bot!')
-      return
-    }
-
     if (!deliveryAddress.trim()) {
       showToast('⚠️ Mohon isi Alamat atau tandai titik di peta!')
       return
     }
-
-    setIsSubmittingOrder(true)
 
     const orderId = `WT-${Date.now().toString().slice(-4)}`
     const orderItemsSummary = cart.map((item) => {
@@ -881,96 +870,60 @@ export default function App() {
     const ongkirText = isFreeDelivery ? 'GRATIS (Promo 3+ Cup)' : 'Rp 5.000'
     const totalWithOngkir = isFreeDelivery ? totalCartPrice : totalCartPrice + 5000
 
-    const payload = {
-      orderId,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      phone: customerPhone.trim(),
-      building: deliveryAddress.trim(),
-      roomInfo: deliveryAddress.trim(),
-      address: deliveryAddress.trim(),
-      mapsUrl: selectedPin?.mapsUrl || '',
-      orderDetails: orderListText,
-      totalPrice: `Rp ${totalWithOngkir.toLocaleString('id-ID')}`,
-      totalAmount: totalWithOngkir,
-      customerNotes: customerNotes.trim() || '-',
-      timestamp: new Date().toISOString(),
-    }
-
-    // 1. Kirim pesan WhatsApp otomatis ke customer via Fonnte Gateway
-    try {
-      let cleanPhone = customerPhone.replace(/\D/g, '')
-      if (cleanPhone.startsWith('0')) {
-        cleanPhone = '62' + cleanPhone.slice(1)
-      } else if (cleanPhone.startsWith('8')) {
-        cleanPhone = '62' + cleanPhone
+    const formatTo08 = (phone: string) => {
+      const clean = phone.replace(/\D/g, '')
+      if (clean.startsWith('62')) {
+        return '0' + clean.slice(2)
       }
-
-      const waMessage =
-        `Halo Kak *${customerName.trim()}*! ☕✨\n\n` +
-        `Pesanan Anda (*#${orderId}*) di *WE'TU Kopi* telah kami terima di sistem!\n\n` +
-        `📋 *RINCIAN PESANAN:*\n${orderListText}\n\n` +
-        `--------------------------------\n` +
-        `*Subtotal:* Rp ${totalCartPrice.toLocaleString('id-ID')}\n` +
-        `*Ongkir:* ${ongkirText}\n` +
-        `*TOTAL TAGIHAN:* Rp ${totalWithOngkir.toLocaleString('id-ID')}\n` +
-        `--------------------------------\n\n` +
-        `📍 *Alamat Antar:* ${deliveryAddress.trim()}\n` +
-        (customerNotes.trim() ? `📝 *Catatan:* ${customerNotes.trim()}\n\n` : '\n') +
-        `💳 *METODE PEMBAYARAN:*\n` +
-        `• Scan QRIS atau Transfer Bank ke Rekening WE'TU Kopi.\n` +
-        `• Atau bayar Tunai (*CASH*) saat kurir barista tiba di lokasi Anda.\n\n` +
-        `Pesanan Anda sedang dipersiapkan oleh Barista kami. Mohon ditunggu ya! 🙏🚀`
-
-      const fonnteFormData = new FormData()
-      fonnteFormData.append('target', cleanPhone)
-      fonnteFormData.append('message', waMessage)
-      fonnteFormData.append('countryCode', '62')
-
-      await fetch('https://api.fonnte.com/send', {
-        method: 'POST',
-        headers: {
-          Authorization: 'sa7m2H6MRrTnZLCtdevc',
-        },
-        body: fonnteFormData,
-      })
-    } catch (fonnteError) {
-      console.error('Gagal mengirim WhatsApp via Fonnte:', fonnteError)
+      if (clean.startsWith('8')) {
+        return '0' + clean
+      }
+      return clean
     }
 
-    // 2. Kirim pencatatan ke Google Sheets
-    try {
-      const SHEET_API_URL =
-        'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec'
+    const formattedCustomerPhone = customerPhone.trim() ? formatTo08(customerPhone.trim()) : '-'
 
-      await fetch(SHEET_API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-    } catch (error) {
-      console.error('Gagal mengirim ke Sheets/Webhook:', error)
-    }
+    const templateMessage =
+      `*PESANAN KOPI WE'TU* ☕\n` +
+      `*ID Pesanan:* #${orderId}\n\n` +
+      `*Daftar Pesanan:*\n${orderListText}\n\n` +
+      `--------------------------------\n` +
+      `*Subtotal:* Rp ${totalCartPrice.toLocaleString('id-ID')}\n` +
+      `*Ongkir:* ${ongkirText}\n` +
+      `*TOTAL TAGIHAN:* Rp ${totalWithOngkir.toLocaleString('id-ID')}\n` +
+      `--------------------------------\n\n` +
+      `*DETAIL PENGANTARAN:*\n` +
+      `👤 Pemesan: *${customerName.trim()}*\n` +
+      `📱 No. WhatsApp: *${formattedCustomerPhone}*\n` +
+      `📍 Alamat: *${deliveryAddress.trim()}*\n` +
+      (selectedPin?.mapsUrl ? `🗺️ Link Maps: ${selectedPin.mapsUrl}\n` : '') +
+      (customerNotes.trim() ? `📝 Catatan: ${customerNotes.trim()}\n` : '') +
+      `\nHalo Bot WE'TU Kopi! Saya ingin konfirmasi pesanan ini. Mohon catat pesanan saya dan kirimkan info pembayaran QRIS ya. Terima kasih!`
 
-    // Tampilkan modal konfirmasi sukses chatbot
+    const waUrl = `https://wa.me/6282295676595?text=${encodeURIComponent(templateMessage)}`
+
+    // Buka WhatsApp langsung ke bot WhatsApp dengan template pesan
+    window.open(waUrl, '_blank')
+
+    // Tampilkan modal panduan konfirmasi
     setOrderSuccessModal({
       orderId,
       name: customerName.trim(),
-      phone: customerPhone.trim(),
+      phone: customerPhone.trim() || '-',
       total: totalWithOngkir,
       address: deliveryAddress.trim(),
       items: orderItemsSummary,
+      waUrl,
     })
 
-    // Bersihkan keranjang & form
+    showToast('📲 Membuka WhatsApp... Silakan kirim chat untuk konfirmasi!')
+  }
+
+  const handleFinishOrder = () => {
     setCart([])
     setCustomerNotes('')
-    setIsSubmittingOrder(false)
+    setOrderSuccessModal(null)
     setIsCartOpen(false)
-    showToast('✅ Pesanan diterima! Chatbot WA segera menghubungi Anda.')
   }
 
   return (
@@ -1682,7 +1635,7 @@ export default function App() {
                           className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none font-mono"
                         />
                         <p className="text-[10px] text-[#a6998b] mt-1 leading-relaxed">
-                          *Chatbot kami akan langsung mengirim rincian pesanan dan instruksi pembayaran ke nomor ini.
+                          *Nomor kontak pemesan yang tertera pada pesan konfirmasi WhatsApp ke Bot.
                         </p>
                       </div>
 
@@ -1732,25 +1685,15 @@ export default function App() {
 
                 <button
                   type="button"
-                  disabled={isSubmittingOrder}
                   onClick={submitOrder}
-                  className="w-full gold-gradient-bg hover:opacity-95 text-black font-extrabold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-xl shadow-[#e8a756]/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full bg-[#25d366] hover:bg-[#20ba59] text-black font-extrabold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-xl shadow-[#25d366]/20 transition-all cursor-pointer"
                 >
-                  {isSubmittingOrder ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      <span>Memproses Pesanan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="checkCircle" className="w-5 h-5 fill-black" />
-                      <span>Pesan Sekarang (Konfirmasi via Bot WA) →</span>
-                    </>
-                  )}
+                  <Icon name="message" className="w-5 h-5 fill-black" />
+                  <span>Kirim Konfirmasi Pesanan ke WhatsApp →</span>
                 </button>
 
                 <p className="text-[11px] text-center text-[#a6998b] leading-tight">
-                  🤖 Pesanan otomatis dicatat dan chatbot kami akan mengirimkan konfirmasi ke WhatsApp Anda.
+                  📲 Pesanan Anda akan dialihkan ke WhatsApp sesuai template dan resmi tercatat setelah chat konfirmasi terkirim ke Bot.
                 </p>
               </div>
             )}
@@ -1767,10 +1710,11 @@ export default function App() {
         initialLng={selectedPin ? selectedPin.lng : 101.2167}
       />
 
-      {/* Order Success Confirmation Modal (Chatbot Notif) */}
+      {/* Order Confirmation Guide Modal */}
       <OrderSuccessModal
         order={orderSuccessModal}
         onClose={() => setOrderSuccessModal(null)}
+        onFinish={handleFinishOrder}
       />
     </div>
   )
