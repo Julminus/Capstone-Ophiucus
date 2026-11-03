@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import L from 'leaflet'
 
 // Types
 interface Product {
@@ -56,6 +57,8 @@ type IconName =
   | 'building'
   | 'chevronDown'
   | 'message'
+  | 'navigation'
+  | 'externalLink'
 
 function Icon({
   name,
@@ -166,6 +169,14 @@ function Icon({
     ),
     chevronDown: <path d="m6 9 6 6 6-6" />,
     message: <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />,
+    navigation: <polygon points="3 11 22 2 13 21 11 13 3 11" />,
+    externalLink: (
+      <>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" x2="21" y1="14" y2="3" />
+      </>
+    ),
   }
 
   return (
@@ -306,6 +317,323 @@ const PRODUCTS: Product[] = [
 
 const CATEGORIES = ['Semua', 'Signature', 'Manual Brew', 'Non-Coffee', 'Pastry & Snack'] as const
 
+interface MapPickerModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSelectLocation: (data: { address: string; mapsUrl: string; lat: number; lng: number }) => void
+  initialLat?: number
+  initialLng?: number
+}
+
+function MapPickerModal({
+  isOpen,
+  onClose,
+  onSelectLocation,
+  initialLat = 1.275,
+  initialLng = 101.2167,
+}: MapPickerModalProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<L.Map | null>(null)
+  const markerRef = useRef<L.Marker | null>(null)
+
+  const [coords, setCoords] = useState<{ lat: number; lng: number }>({
+    lat: initialLat,
+    lng: initialLng,
+  })
+  const [addressName, setAddressName] = useState<string>('Memuat alamat lokasi...')
+  const [isLoadingAddress, setIsLoadingAddress] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [isGpsLoading, setIsGpsLoading] = useState(false)
+
+  const fetchAddress = async (lat: number, lng: number) => {
+    setIsLoadingAddress(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'Accept-Language': 'id' } }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setAddressName(data.display_name || `Titik Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+      } else {
+        setAddressName(`Titik Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+      }
+    } catch {
+      setAddressName(`Titik Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+    } finally {
+      setIsLoadingAddress(false)
+    }
+  }
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Browser Anda tidak mendukung deteksi lokasi otomatis.')
+      return
+    }
+    setIsGpsLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsGpsLoading(false)
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        setCoords({ lat, lng })
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setView([lat, lng], 17)
+          markerRef.current.setLatLng([lat, lng])
+        }
+        fetchAddress(lat, lng)
+      },
+      (err) => {
+        setIsGpsLoading(false)
+        alert('Gagal mendeteksi lokasi GPS: ' + (err.message || 'Izin lokasi tidak diberikan.'))
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+    setIsSearching(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&countrycodes=id`,
+        { headers: { 'Accept-Language': 'id' } }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setSearchResults(data || [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const selectSearchResult = (item: any) => {
+    const lat = parseFloat(item.lat)
+    const lng = parseFloat(item.lon)
+    setCoords({ lat, lng })
+    setAddressName(item.display_name)
+    setSearchResults([])
+    setSearchQuery('')
+    if (mapInstanceRef.current && markerRef.current) {
+      mapInstanceRef.current.setView([lat, lng], 17)
+      markerRef.current.setLatLng([lat, lng])
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return
+
+      if (!mapInstanceRef.current) {
+        const map = L.map(mapContainerRef.current).setView([coords.lat, coords.lng], 16)
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map)
+
+        const pinIcon = L.divIcon({
+          className: 'custom-pin-marker',
+          html: `
+            <div style="transform: translate(-50%, -100%); position: relative;">
+              <div style="width: 38px; height: 38px; background: #e8a756; border: 3px solid #0c0a09; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+                <div style="width: 14px; height: 14px; background: #0c0a09; border-radius: 50%;"></div>
+              </div>
+              <div style="width: 16px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 50%; margin: 3px auto 0; filter: blur(1px);"></div>
+            </div>
+          `,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        })
+
+        const marker = L.marker([coords.lat, coords.lng], {
+          draggable: true,
+          icon: pinIcon,
+        }).addTo(map)
+
+        marker.on('dragend', () => {
+          const pos = marker.getLatLng()
+          setCoords({ lat: pos.lat, lng: pos.lng })
+          fetchAddress(pos.lat, pos.lng)
+        })
+
+        map.on('click', (e: L.LeafletMouseEvent) => {
+          marker.setLatLng(e.latlng)
+          setCoords({ lat: e.latlng.lat, lng: e.latlng.lng })
+          fetchAddress(e.latlng.lat, e.latlng.lng)
+        })
+
+        mapInstanceRef.current = map
+        markerRef.current = marker
+        fetchAddress(coords.lat, coords.lng)
+      } else {
+        mapInstanceRef.current.invalidateSize()
+      }
+    }, 150)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [isOpen])
+
+  const handleClose = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove()
+      mapInstanceRef.current = null
+      markerRef.current = null
+    }
+    setSearchResults([])
+    setSearchQuery('')
+    onClose()
+  }
+
+  const handleConfirm = () => {
+    const mapsUrl = `https://www.google.com/maps?q=${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`
+    onSelectLocation({
+      address: addressName,
+      mapsUrl,
+      lat: coords.lat,
+      lng: coords.lng,
+    })
+    handleClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-slide-down">
+      <div className="bg-[#14110f] border border-[#e8a756]/30 rounded-3xl w-full max-w-2xl h-[90vh] max-h-[720px] flex flex-col overflow-hidden shadow-2xl relative">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-[#191512]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#e8a756]/20 text-[#e8a756] flex items-center justify-center">
+              <Icon name="mapPin" className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-white">
+                Tandai Titik Pengantaran
+              </h3>
+              <p className="text-[11px] text-[#a6998b]">
+                Klik atau geser pin ke posisi meja / gedung / rumah Anda
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-white flex items-center justify-center transition-colors"
+          >
+            <Icon name="x" className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Search & GPS Tool Bar */}
+        <div className="p-3 bg-[#171412] border-b border-white/5 flex flex-col sm:flex-row gap-2 relative z-20">
+          <form onSubmit={handleSearch} className="relative flex-1">
+            <Icon name="search" className="w-4 h-4 text-[#a6998b] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari gedung, jalan, atau area..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#0c0a09] border border-white/15 focus:border-[#e8a756] rounded-xl pl-9 pr-16 py-2 text-xs text-white placeholder-[#685e54] focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#e8a756] hover:bg-[#d69645] text-black text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors"
+            >
+              {isSearching ? '...' : 'Cari'}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            disabled={isGpsLoading}
+            className="bg-[#251f1a] hover:bg-[#2f2721] border border-[#e8a756]/30 text-[#e8a756] px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Icon name="navigation" className="w-3.5 h-3.5" />
+            <span>{isGpsLoading ? 'Mendeteksi...' : '🎯 Lokasi GPS Saya'}</span>
+          </button>
+
+          {/* Autocomplete Search Dropdown */}
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-3 right-3 sm:right-36 mt-1 bg-[#1c1815] border border-[#e8a756]/40 rounded-xl shadow-2xl overflow-hidden z-30 max-h-48 overflow-y-auto">
+              {searchResults.map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => selectSearchResult(item)}
+                  className="w-full p-2.5 text-left text-xs text-[#d6ccbf] hover:text-white hover:bg-[#25201c] border-b border-white/5 last:border-b-0 flex items-start gap-2 transition-colors"
+                >
+                  <Icon name="mapPin" className="w-3.5 h-3.5 text-[#e8a756] shrink-0 mt-0.5" />
+                  <span className="line-clamp-2">{item.display_name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Map Container */}
+        <div className="flex-1 w-full relative z-10 bg-[#0c0a09]">
+          <div ref={mapContainerRef} className="w-full h-full" />
+        </div>
+
+        {/* Bottom Location Confirmation Box */}
+        <div className="p-4 bg-[#191512] border-t border-white/10 space-y-3 relative z-20">
+          <div className="flex items-start gap-3">
+            <div className="w-7 h-7 rounded-lg bg-[#e8a756]/20 text-[#e8a756] flex items-center justify-center shrink-0 mt-0.5">
+              <Icon name="mapPin" className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] text-[#e8a756] uppercase font-bold tracking-wider block">
+                Titik Terpilih:
+              </span>
+              <p className="text-xs text-white font-medium line-clamp-2 leading-relaxed">
+                {isLoadingAddress ? (
+                  <span className="text-[#a6998b] italic">Mendeteksi alamat dari titik...</span>
+                ) : (
+                  addressName
+                )}
+              </p>
+              <span className="text-[11px] text-[#a6998b] font-mono mt-0.5 block">
+                {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-1/3 py-3 rounded-xl text-xs font-bold bg-[#251f1a] text-[#a6998b] hover:text-white transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="flex-1 gold-gradient-bg text-black font-extrabold py-3 rounded-xl text-xs shadow-lg shadow-[#e8a756]/20 flex items-center justify-center gap-2 hover:opacity-95 transition-all"
+            >
+              <Icon name="checkCircle" className="w-4 h-4" />
+              <span>Gunakan Titik Lokasi Ini</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua')
@@ -314,10 +642,30 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
+  // Map Picker State
+  const [isMapOpen, setIsMapOpen] = useState(false)
+  const [selectedPin, setSelectedPin] = useState<{
+    address: string
+    mapsUrl: string
+    lat: number
+    lng: number
+  } | null>(null)
+
   // Delivery Form State
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
+
+  const handleLocationPicked = (loc: {
+    address: string
+    mapsUrl: string
+    lat: number
+    lng: number
+  }) => {
+    setSelectedPin(loc)
+    setDeliveryAddress(`${loc.address}\nLink Maps: ${loc.mapsUrl}`)
+    showToast('📍 Titik lokasi peta berhasil disetel!')
+  }
 
   // Order Tracking State
   const [trackingInput, setTrackingInput] = useState('')
@@ -1209,18 +1557,72 @@ export default function App() {
               {/* Delivery Destination Form */}
               {cart.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
-                  <h4 className="text-xs font-bold text-[#e8a756] uppercase tracking-wider flex items-center gap-1.5">
-                    <Icon name="mapPin" className="w-4 h-4" /> Alamat Pengantaran
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[#e8a756] uppercase tracking-wider flex items-center gap-1.5">
+                      <Icon name="mapPin" className="w-4 h-4" /> Alamat Pengantaran
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setIsMapOpen(true)}
+                      className="inline-flex items-center gap-1.5 bg-[#e8a756]/15 hover:bg-[#e8a756]/25 border border-[#e8a756]/40 text-[#e8a756] px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <Icon name="mapPin" className="w-3.5 h-3.5" />
+                      <span>{selectedPin ? 'Ubah Titik' : '📍 Tandai di Peta'}</span>
+                    </button>
+                  </div>
 
                   <div className="space-y-3">
+                    {/* Selected Pin Info Card */}
+                    {selectedPin && (
+                      <div className="p-2.5 rounded-xl bg-[#251f1a] border border-[#e8a756]/35 flex items-start justify-between gap-2.5">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <span className="text-base leading-none mt-0.5">📍</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-[#e8a756] uppercase font-bold tracking-wider block">
+                              Titik Peta Terpilih:
+                            </span>
+                            <p className="text-xs font-semibold text-white line-clamp-2 leading-tight mt-0.5">
+                              {selectedPin.address}
+                            </p>
+                            <a
+                              href={selectedPin.mapsUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-[#e8a756] hover:underline inline-flex items-center gap-1 mt-1 font-mono"
+                            >
+                              <span>Buka Google Maps</span>
+                              <Icon name="externalLink" className="w-2.5 h-2.5" />
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsMapOpen(true)}
+                          className="text-[11px] text-[#e8a756] font-bold underline shrink-0 hover:text-white cursor-pointer pt-0.5"
+                        >
+                          Ubah
+                        </button>
+                      </div>
+                    )}
+
                     <div>
-                      <label className="text-xs text-[#a6998b] font-medium block mb-1">
-                        Alamat Lengkap / Link Google Maps:
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs text-[#a6998b] font-medium">
+                          Alamat Lengkap / Patokan Ruangan:
+                        </label>
+                        {!selectedPin && (
+                          <button
+                            type="button"
+                            onClick={() => setIsMapOpen(true)}
+                            className="text-[11px] text-[#e8a756] hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Pilih lewat Peta</span> →
+                          </button>
+                        )}
+                      </div>
                       <textarea
                         rows={2}
-                        placeholder="Contoh: Jl. Rokan No. 12 / Gedung Lancang Lt. 3, atau tempel link Google Maps..."
+                        placeholder="Contoh: Jl. Rokan No. 12 / Gedung Lancang Lt. 3, atau klik 'Tandai di Peta'..."
                         value={deliveryAddress}
                         onChange={(e) => setDeliveryAddress(e.target.value)}
                         className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none resize-none"
@@ -1296,6 +1698,15 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Interactive Map Pin Picker Modal */}
+      <MapPickerModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onSelectLocation={handleLocationPicked}
+        initialLat={selectedPin ? selectedPin.lat : 1.275}
+        initialLng={selectedPin ? selectedPin.lng : 101.2167}
+      />
     </div>
   )
 }
