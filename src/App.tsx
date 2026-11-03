@@ -306,15 +306,6 @@ const PRODUCTS: Product[] = [
 
 const CATEGORIES = ['Semua', 'Signature', 'Manual Brew', 'Non-Coffee', 'Pastry & Snack'] as const
 
-const PHR_BUILDINGS = [
-  'Gedung Rokan',
-  'Gedung Lancang Kuning',
-  'Main Office PHR',
-  'Gedung Eksplorasi & Reservoir',
-  'Central Workshop & Logistik',
-  'Lainnya (Tulis di Catatan)',
-]
-
 export default function App() {
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua')
@@ -323,9 +314,8 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
-  // Office Delivery Form State
-  const [building, setBuilding] = useState(PHR_BUILDINGS[0])
-  const [roomInfo, setRoomInfo] = useState('')
+  // Delivery Form State
+  const [deliveryAddress, setDeliveryAddress] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
 
@@ -439,17 +429,16 @@ export default function App() {
     const totalWithOngkir = isFreeDelivery ? totalCartPrice : totalCartPrice + 5000
 
     const message =
-      `*PESANAN KOPI WE'TU - AREA PHR* ☕🏢\n\n` +
+      `*PESANAN KOPI WE'TU* ☕\n\n` +
       `*Daftar Pesanan:*\n${orderList}\n\n` +
       `--------------------------------\n` +
       `*Subtotal:* Rp ${totalCartPrice.toLocaleString('id-ID')}\n` +
-      `*Ongkir Ruangan:* ${ongkirText}\n` +
+      `*Ongkir:* ${ongkirText}\n` +
       `*TOTAL:* Rp ${totalWithOngkir.toLocaleString('id-ID')}\n` +
       `--------------------------------\n\n` +
       `*DETAIL PENGANTARAN:*\n` +
-      `📍 Gedung: *${building}*\n` +
-      `🚪 Lantai & Ruang: *${roomInfo || 'Belum diisi'}*\n` +
-      `👤 Pemesan: *${customerName || 'Staff PHR'}*\n` +
+      `📍 Alamat / Link Maps: *${deliveryAddress || 'Belum diisi'}*\n` +
+      `👤 Pemesan: *${customerName || 'Pelanggan'}*\n` +
       (customerNotes ? `📝 Catatan: ${customerNotes}\n` : '') +
       `\nMohon konfirmasi pesanan dan nomor rekening / QRIS pembayarannya ya. Terima kasih!`
 
@@ -458,9 +447,10 @@ export default function App() {
       const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxhVBE5I-qtleommkvR9149Du8iGqsncKCAkMibPILytM8uhQFhKUgVJremtsxMrhH6/exec';
       
       const payload = {
-        customerName: customerName || 'Staff PHR',
-        building: building,
-        roomInfo: roomInfo || 'Tidak diisi',
+        customerName: customerName || 'Pelanggan',
+        building: deliveryAddress || '-',
+        roomInfo: deliveryAddress || '-',
+        address: deliveryAddress || '-',
         orderDetails: orderList,
         totalPrice: `Rp ${totalWithOngkir.toLocaleString('id-ID')}`,
         customerNotes: customerNotes || '-',
@@ -1220,37 +1210,20 @@ export default function App() {
               {cart.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
                   <h4 className="text-xs font-bold text-[#e8a756] uppercase tracking-wider flex items-center gap-1.5">
-                    <Icon name="mapPin" className="w-4 h-4" /> Lokasi Pengantaran Ruangan
+                    <Icon name="mapPin" className="w-4 h-4" /> Alamat Pengantaran
                   </h4>
 
                   <div className="space-y-3">
                     <div>
                       <label className="text-xs text-[#a6998b] font-medium block mb-1">
-                        Pilih Gedung Kantor di PHR:
+                        Alamat Lengkap / Link Google Maps:
                       </label>
-                      <select
-                        value={building}
-                        onChange={(e) => setBuilding(e.target.value)}
-                        className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none"
-                      >
-                        {PHR_BUILDINGS.map((b) => (
-                          <option key={b} value={b} className="bg-[#171412]">
-                            {b}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-[#a6998b] font-medium block mb-1">
-                        Lantai & Nomor Ruangan / Nama Divisi:
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Lantai 3, Ruang Tim Drilling 302..."
-                        value={roomInfo}
-                        onChange={(e) => setRoomInfo(e.target.value)}
-                        className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none"
+                      <textarea
+                        rows={2}
+                        placeholder="Contoh: Jl. Rokan No. 12 / Gedung Lancang Lt. 3, atau tempel link Google Maps..."
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        className="w-full bg-[#1a1613] border border-white/15 focus:border-[#e8a756] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#685e54] focus:outline-none resize-none"
                       />
                     </div>
 
