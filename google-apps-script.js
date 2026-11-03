@@ -3,6 +3,7 @@
  * Webhook Handler untuk Fonnte (Mencatat Otomatis Saat Chat WA Terkirim)
  * 
  * UPDATE TERBARU:
+ * - Nomor telepon dipaksa menjadi String murni (Plain Text / format "@").
  * - Mengubah semua format nomor HP (+62, 62, 8) otomatis menjadi format 08xxxxxxxxx.
  * - Kebal error rumus Google Sheets (#ERROR!).
  * - Mendukung format 7 kolom: Timestamp, Nama Pemesan, No. Whatsapp, Alamat/Gedung, Detail Pesanan, Total Bayar, Catatan.
@@ -31,40 +32,39 @@ function doPost(e) {
       }
     }
 
-    // 2. Hanya proses jika pesan chat berisi pesanan WE'TU Kopi
+    // 2. Filter: Hanya proses jika pesan chat berisi pesanan WE'TU Kopi
     if (!message || message.indexOf("PESANAN KOPI WE'TU") === -1) {
       return ContentService.createTextOutput(JSON.stringify({ status: "ignored" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
     // 3. Ekstraksi Data dari Template Chat dengan Regex Kebal Format
-    // Nama Pemesan
+    // Nama Pemesan (String)
     var nameMatch = message.match(/Pemesan:\s*\*?(.*?)\*?(\r?\n|$)/i);
     var customerName = (nameMatch && nameMatch[1] && nameMatch[1].trim() !== "-") 
-      ? nameMatch[1].replace(/[*_]/g, '').trim() 
+      ? String(nameMatch[1].replace(/[*_]/g, '').trim()) 
       : "Pelanggan";
 
-    // Nomor WhatsApp Pemesan (Dikonversi otomatis ke format 08xxxxxxxxx)
+    // Nomor WhatsApp Pemesan (Dikonversi ke String 08xxxxxxxxx murni)
     var phoneMatch = message.match(/(?:No\.?\s*WhatsApp|Telepon):\s*\*?(.*?)\*?(\r?\n|$)/i);
     var rawPhone = (phoneMatch && phoneMatch[1] && phoneMatch[1].trim() !== "-") 
-      ? phoneMatch[1].replace(/[*_]/g, '').trim() 
-      : sender;
+      ? String(phoneMatch[1].replace(/[*_]/g, '').trim()) 
+      : String(sender);
 
-    var cleanDigits = rawPhone.toString().replace(/\D/g, "");
+    // Bersihkan angka & konversi +62 / 62 / 8 menjadi 08
+    var cleanDigits = String(rawPhone).replace(/\D/g, "");
     var phone08 = cleanDigits;
     if (cleanDigits.indexOf("62") === 0) {
       phone08 = "0" + cleanDigits.substring(2);
     } else if (cleanDigits.indexOf("8") === 0) {
       phone08 = "0" + cleanDigits;
     }
-    // Tanda petik satu (') di depan membuat Google Sheets menyimpannya sebagai teks murni
-    // sehingga angka 0 di depan tidak hilang dan tidak menjadi rumus #ERROR!
-    var customerPhoneForSheet = "'" + phone08;
+    var customerPhoneString = String(phone08);
 
     // Alamat Pengantaran
     var addressMatch = message.match(/Alamat:\s*\*?(.*?)\*?(\r?\n|$)/i);
     var address = (addressMatch && addressMatch[1]) 
-      ? addressMatch[1].replace(/[*_]/g, '').trim() 
+      ? String(addressMatch[1].replace(/[*_]/g, '').trim()) 
       : "-";
 
     var mapsMatch = message.match(/Link Maps:\s*(https?:\/\/[^\s\r\n]+)/i);
@@ -73,18 +73,18 @@ function doPost(e) {
 
     // Total Tagihan
     var totalMatch = message.match(/TOTAL TAGIHAN:\*\s*\*?(Rp\s*[\d\.,]+)\*?/i) || message.match(/TOTAL:\*\s*\*?(Rp\s*[\d\.,]+)\*?/i);
-    var totalPrice = (totalMatch && totalMatch[1]) ? totalMatch[1].replace(/[*_]/g, '').trim() : "-";
+    var totalPrice = (totalMatch && totalMatch[1]) ? String(totalMatch[1].replace(/[*_]/g, '').trim()) : "-";
 
     // Daftar Pesanan
     var itemsMatch = message.match(/Daftar Pesanan:\*\r?\n([\s\S]*?)\r?\n-{4,}/i);
-    var orderDetails = (itemsMatch && itemsMatch[1]) ? itemsMatch[1].trim() : "-";
+    var orderDetails = (itemsMatch && itemsMatch[1]) ? String(itemsMatch[1].trim()) : "-";
 
     // Catatan
     var notesMatch = message.match(/Catatan:\s*\*?(.*?)\*?(\r?\n|$)/i);
-    var customerNotes = (notesMatch && notesMatch[1]) ? notesMatch[1].replace(/[*_]/g, '').trim() : "-";
+    var customerNotes = (notesMatch && notesMatch[1]) ? String(notesMatch[1].replace(/[*_]/g, '').trim()) : "-";
 
     var orderIdMatch = message.match(/ID Pesanan:\s*\*?#?(WT-[\d]+)\*?/i);
-    var orderId = (orderIdMatch && orderIdMatch[1]) ? orderIdMatch[1].replace(/[*_]/g, '').trim() : ("WT-" + new Date().getTime().toString().slice(-4));
+    var orderId = (orderIdMatch && orderIdMatch[1]) ? String(orderIdMatch[1].replace(/[*_]/g, '').trim()) : ("WT-" + new Date().getTime().toString().slice(-4));
 
     // 4. Catat baris baru ke Google Sheet (Sesuai 7 kolom Anda):
     // A: Timestamp | B: Nama Pemesan | C: No. Whatsapp | D: Alamat/Gedung | E: Detail Pesanan | F: Total Bayar | G: Catatan
@@ -95,12 +95,18 @@ function doPost(e) {
     sheet.appendRow([
       timestamp,
       customerName,
-      customerPhoneForSheet,
+      "'" + customerPhoneString, // Tanda petik ' memastikan masuk sebagai String text
       fullAddress,
       orderDetails,
       totalPrice,
       customerNotes
     ]);
+
+    // Kunci format sel Kolom C (No. Whatsapp) agar 100% String / Plain Text murni di Google Sheets
+    var lastRow = sheet.getLastRow();
+    var phoneCell = sheet.getRange(lastRow, 3);
+    phoneCell.setNumberFormat("@"); // Format "@" = Plain Text String di Excel & Google Sheets
+    phoneCell.setValue("'" + customerPhoneString);
 
     // 5. Kirim chat balasan konfirmasi dari Bot ke WhatsApp Customer
     var replyText = 
