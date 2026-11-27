@@ -121,8 +121,10 @@ Hasilnya ada di folder `dist/` dan bisa di-hosting di layanan static hosting man
 
 1. Buat Google Sheets baru untuk rekap pesanan. Isi baris pertama dengan header:
 
-   | Timestamp | Nama Pemesan | No. WhatsApp | Alamat/Gedung | Detail Pesanan | Total Bayar | Catatan |
-   |---|---|---|---|---|---|---|
+   | Timestamp | Nama Pemesan | No. Whatsapp | Alamat/Gedung | Detail Pesanan | Total Bayar | Catatan | Status Pembayaran |
+   |---|---|---|---|---|---|---|---|
+
+   Kolom **Status Pembayaran** dipakai oleh versi Apps Script yang aktif (`RevFonnte2.gs` + `Code.gs`, belum ada di repo).
 
    Script menulis ke sheet yang aktif (`getActiveSheet()`), jadi pastikan sheet pesanan adalah tab pertama.
 2. Di Sheets tersebut buka **Extensions → Apps Script**, hapus isi default, lalu tempel isi `google-apps-script.js`.
@@ -162,9 +164,13 @@ Tidak perlu instalasi apa pun:
 
 ## Catatan Pengembangan
 
-Hasil pengujian internal pada 27 November 2026 terhadap commit `ee185f5`:
+Hasil pengujian internal pada 27 November 2026 terhadap commit `ee185f5` dan proyek Apps Script yang ter-deploy:
 
-- Pola ekstraksi di Apps Script (revisi 5 Nov 2026) belum cocok dengan template pesan dari website, sehingga kolom **Detail Pesanan** dan **Total Bayar** terisi `-`, dan ID pesanan di balasan bot tidak sama dengan ID dari website. Revisi sebelumnya (`0ded9fb`) masih membaca kedua kolom itu dengan benar.
+- **`google-apps-script.js` di repo tertinggal dari Apps Script yang berjalan.** Versi di repo (setara `RevFonnte.gs`, 5 Nov 2026) gagal membaca **Detail Pesanan**, **Total Bayar**, dan ID pesanan. Versi yang aktif (`RevFonnte2.gs`, deployment versi 10, 13 Nov 2026) sudah memperbaikinya dan menambah kolom **Status Pembayaran**. Proyek Apps Script juga berisi `Code.gs` + `Dashboard.html` (menu *Business Intelligence* dan status pembayaran) yang belum ada di repo. Salin berkas-berkas itu ke repo.
+- Proyek Apps Script punya beberapa deployment aktif dan beberapa berkas dengan fungsi `doPost`. Pastikan webhook Fonnte mengarah ke deployment yang benar, lalu arsipkan yang lain.
+- Belum ada pencegahan pesanan ganda, dan ID pesanan belum disimpan di sheet Pesanan.
+- Balasan otomatis bot mengarahkan ke `wetu-kopi.vercel.app`, tetapi alamat itu menampilkan 404 saat diperiksa.
+- Sheet uji coba memakai 8 kolom (A–H, dengan **Status Pembayaran** di kolom H), ditambah sheet **Pembayaran** dan **Inventory** yang masih diisi manual.
 - Pilihan gula/es muncul untuk produk seharga ≥ Rp20.000, termasuk French Butter Croissant. Sebaiknya ditentukan berdasarkan kategori.
 - Nomor WhatsApp ditandai wajib di form tetapi belum divalidasi.
 - Saat lokasi dipilih dari peta, tautan Maps tercantum dua kali di pesan.
