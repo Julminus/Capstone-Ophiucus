@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <base target="_top">
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 25px;
+      color: #202124;
+    }
+
+    h2 {
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #777;
+      margin-bottom: 25px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    select {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .card h4 {
+      color: #777;
+      margin: 0 0 12px;
+      font-weight: normal;
+    }
+
+    .value {
+      font-size: 25px;
+      font-weight: bold;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      color: #777;
+      font-size: 13px;
+    }
+
+    .bar-container {
+      background: #eee;
+      height: 9px;
+      border-radius: 10px;
+      margin-top: 6px;
+    }
+
+    .bar {
+      background: #4285f4;
+      height: 9px;
+      border-radius: 10px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: #777;
+    }
+
+    .empty {
+      color: #888;
+      text-align: center;
+      padding: 25px;
+    }
+
+    @media(max-width: 800px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="header">
+
+    <div>
+      <h2>Business Intelligence</h2>
+      <div class="subtitle">
+        Order & Sales Performance Dashboard
+      </div>
+    </div>
+
+    <select id="month" onchange="loadDashboard()">
+    </select>
+
+  </div>
+
+  <div id="dashboard">
+
+    <div class="loading">
+      Loading dashboard...
+    </div>
+
+  </div>
+
+
+<script>
+
+  function formatRupiah(value) {
+
+    return 'Rp ' + Math.round(value).toLocaleString('id-ID');
+
+  }
+
+
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[c]);
+  }
+
+
+  function loadDashboard() {
+
+    const month = document.getElementById('month').value;
+
+    document.getElementById('dashboard').innerHTML =
+      '<div class="loading">Memproses data...</div>';
+
+    google.script.run
+      .withSuccessHandler(renderDashboard)
+      .withFailureHandler(error => {
+        document.getElementById('dashboard').innerHTML =
+          '<div class="empty">' + escapeHTML(error.message) + '</div>';
+      })
+      .getDashboardData(month);
+
+  }
+
+
+  function renderDashboard(data) {
+
+    if (data.error) {
+      document.getElementById('dashboard').innerHTML =
+        '<div class="empty">' + escapeHTML(data.error) + '</div>';
+      return;
+    }
+
+    const monthSelect = document.getElementById('month');
+
+    if (!monthSelect.dataset.loaded) {
+
+      const months = [...new Set([
+        ...data.availableMonths,
+        data.month
+      ])].sort().reverse();
+
+      monthSelect.innerHTML = months.map(m => {
+
+        const [year, month] = m.split('-');
+
+        const label = new Date(
+          Number(year),
+          Number(month) - 1
+        ).toLocaleDateString('id-ID', {
+          month: 'long',
+          year: 'numeric'
+        });
+
+        return `<option value="${m}">${label}</option>`;
+
+      }).join('');
+
+      monthSelect.value = data.month;
+      monthSelect.dataset.loaded = 'true';
+
+    }
+
+    const k = data.kpi;
+
+    let html = `
+
+      <div class="grid">
+
+        <div class="card">
+          <h4>Total Pesanan</h4>
+          <div class="value">${k.totalOrders}</div>
+        </div>
+
+        <div class="card">
+          <h4>Total Revenue</h4>
+          <div class="value">${formatRupiah(k.revenue)}</div>
+        </div>
+
+        <div class="card">
+          <h4>Average Order Value</h4>
+          <div class="value">${formatRupiah(k.averageOrder)}</div>
+        </div>
+
+        <div class="card">
+          <h4>Produk Terjual</h4>
+          <div class="value">${k.totalItems}</div>
+        </div>
+
+      </div>
+
+
+      <div class="grid">
+
+        <div class="card">
+          <h4>Pelanggan Unik</h4>
+          <div class="value">${k.uniqueCustomers}</div>
+        </div>
+
+        <div class="card">
+          <h4>Rata-rata Produk / Pesanan</h4>
+          <div class="value">
+            ${k.totalOrders
+              ? (k.totalItems / k.totalOrders).toFixed(1)
+              : 0}
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h3>📈 Sales Performance</h3>
+
+        <table>
+
+          <tr>
+            <th>Tanggal</th>
+            <th>Pesanan</th>
+            <th>Revenue</th>
+          </tr>
+
+          ${data.daily.map(d => `
+
+            <tr>
+              <td>${escapeHTML(d.date)}</td>
+              <td>${d.orders}</td>
+              <td>${formatRupiah(d.revenue)}</td>
+            </tr>
+
+          `).join('') || `
+            <tr><td colspan="3" class="empty">
+              Belum ada transaksi.
+            </td></tr>
+          `}
+
+        </table>
+
+      </div>
+
+
+      <div class="section">
+
+        <h3>🏆 Top Selling Products</h3>
+
+        <table>
+
+          <tr>
+            <th>Produk</th>
+            <th>Terjual</th>
+            <th>Revenue</th>
+          </tr>
+
+          ${data.topProducts.map(p => `
+
+            <tr>
+              <td>${escapeHTML(p.name)}</td>
+              <td>${p.quantity} pcs</td>
+              <td>${formatRupiah(p.revenue)}</td>
+            </tr>
+
+          `).join('') || `
+            <tr><td colspan="3" class="empty">
+              Belum ada data produk.
+            </td></tr>
+          `}
+
+        </table>
+
+      </div>
+
+
+      <div class="section">
+
+        <h3>👥 Top Customers</h3>
+
+        <table>
+
+          <tr>
+            <th>Nama Pelanggan</th>
+            <th>Jumlah Pesanan</th>
+          </tr>
+
+          ${data.topCustomers.map(c => `
+
+            <tr>
+              <td>${escapeHTML(c.name)}</td>
+              <td>${c.orders} pesanan</td>
+            </tr>
+
+          `).join('') || `
+            <tr><td colspan="2" class="empty">
+              Belum ada data pelanggan.
+            </td></tr>
+          `}
+
+        </table>
+
+      </div>
+
+    `;
+
+    document.getElementById('dashboard').innerHTML = html;
+
+  }
+
+
+  window.onload = loadDashboard;
+
+</script>
+
+</body>
+</html>

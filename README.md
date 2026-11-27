@@ -32,11 +32,20 @@ flowchart LR
 - Penandaan lokasi di peta (Leaflet + OpenStreetMap): geser pin, lokasi GPS, pencarian alamat, tautan Google Maps otomatis
 - Template pesan WhatsApp lengkap dengan ID pesanan `WT-xxxx`
 
-**Bot & pencatatan (`google-apps-script.js`)**
-- Webhook `doPost` untuk Fonnte; pesan selain pesanan diabaikan
+**Bot & pencatatan (`apps-script/`)**
+- Webhook `doPost` untuk Fonnte (`RevFonnte2.gs`)
 - Ekstraksi nama, nomor, alamat, detail pesanan, total, catatan, dan ID pesanan dari isi pesan
-- Pencatatan ke Google Sheets (7 kolom) dengan nomor WhatsApp disimpan sebagai teks
-- Balasan konfirmasi otomatis via Fonnte API
+- Pencatatan ke Google Sheets (8 kolom) dengan nomor WhatsApp disimpan sebagai teks dan status pembayaran awal `🟡 Pending`
+- Balasan konfirmasi pesanan otomatis via Fonnte API, plus sapaan/menu cepat untuk chat yang bukan pesanan
+- Menu **📊 Business Intelligence** di Sheets: dasbor KPI, produk terlaris, pelanggan teratas, dan statistik harian per bulan (`Code.gs` + `Dashboard.html`)
+
+## Tampilan
+
+| Katalog | Keranjang & form | Konfirmasi bot |
+|---|---|---|
+| ![Katalog](docs/screenshots/02-katalog.png) | ![Keranjang](docs/screenshots/05-keranjang-tagihan.png) | ![WhatsApp](docs/screenshots/09-wa-pesanan-konfirmasi.png) |
+
+Screenshot lain (beranda, peta, tampilan ponsel, sheet, dasbor BI, arsitektur) ada di [`docs/screenshots/`](docs/screenshots/).
 
 ## Struktur Repo
 
@@ -46,7 +55,11 @@ flowchart LR
 │   ├── main.tsx           # Entry point React
 │   └── index.css          # Tailwind CSS v4 + style global
 ├── public/                # Logo & favicon (logo PNG disimpan via Git LFS)
-├── google-apps-script.js  # Kode webhook untuk Google Apps Script (disalin manual ke editor Apps Script)
+├── apps-script/           # Kode Google Apps Script (disalin manual ke editor Apps Script)
+│   ├── RevFonnte2.gs      # Webhook Fonnte: catat pesanan + balas chat
+│   ├── Code.gs            # Menu Business Intelligence & status pembayaran
+│   └── Dashboard.html     # Tampilan dasbor BI
+├── docs/screenshots/      # Screenshot website, bot, sheet, dasbor (via Git LFS)
 ├── index.html
 ├── vite.config.ts         # Konfigurasi Vite (mengimpor .figma/make/site.json, jangan hapus folder .figma)
 ├── package.json / pnpm-lock.yaml
@@ -115,7 +128,7 @@ Hasilnya ada di folder `dist/` dan bisa di-hosting di layanan static hosting man
 - Ongkir dan batas gratis ongkir: `isFreeDelivery` dan nilai `5000`
 - Jam operasional: teks `07:30–15:00` di header dan footer
 
-> Format template pesan dibaca oleh Apps Script menggunakan regex. Kalau mengubah template di `submitOrder`, sesuaikan juga pola ekstraksi di `google-apps-script.js`, lalu uji ulang.
+> Format template pesan dibaca oleh Apps Script menggunakan regex. Kalau mengubah template di `submitOrder`, sesuaikan juga pola ekstraksi di `apps-script/RevFonnte2.gs`, lalu uji ulang.
 
 ### B. Google Sheets + Apps Script
 
@@ -124,18 +137,18 @@ Hasilnya ada di folder `dist/` dan bisa di-hosting di layanan static hosting man
    | Timestamp | Nama Pemesan | No. Whatsapp | Alamat/Gedung | Detail Pesanan | Total Bayar | Catatan | Status Pembayaran |
    |---|---|---|---|---|---|---|---|
 
-   Kolom **Status Pembayaran** dipakai oleh versi Apps Script yang aktif (`RevFonnte2.gs` + `Code.gs`, belum ada di repo).
+   Kolom **Status Pembayaran** diisi `🟡 Pending` oleh bot, lalu diperbarui pemilik (Pending / Approved / Rejected).
 
    Script menulis ke sheet yang aktif (`getActiveSheet()`), jadi pastikan sheet pesanan adalah tab pertama.
-2. Di Sheets tersebut buka **Extensions → Apps Script**, hapus isi default, lalu tempel isi `google-apps-script.js`.
-3. Simpan token Fonnte di **Project Settings → Script Properties** (misalnya dengan key `FONNTE_TOKEN`), lalu baca dari kode dengan:
+2. Di Sheets tersebut buka **Extensions → Apps Script**, lalu buat tiga berkas dan tempel isinya dari folder `apps-script/`: `RevFonnte2.gs`, `Code.gs`, dan `Dashboard.html` (berkas HTML dibuat lewat **+ → HTML** dengan nama `Dashboard`). Pastikan hanya ada **satu** fungsi `doPost` di seluruh proyek.
+3. Simpan token Fonnte di **Project Settings → Script Properties** dengan key `FONNTE_TOKEN`. Kode sudah membacanya lewat:
 
    ```js
    var FONNTE_TOKEN = PropertiesService.getScriptProperties().getProperty('FONNTE_TOKEN');
    ```
 
-   Jangan menulis token langsung di kode yang di-commit ke repo publik.
-4. Jalankan fungsi `tesKoneksiDanIzin` sekali dari editor dan setujui izin akses yang diminta Google (Sheets dan koneksi internet / `UrlFetchApp`). Ganti `testTarget` dengan nomor yang ingin menerima pesan tes.
+   Jangan menulis token langsung di kode yang di-commit ke repo publik. Sesuaikan juga `BOT_WHATSAPP_NUMBER` dan `WEBSITE_URL` di bagian atas `RevFonnte2.gs`.
+4. Jalankan fungsi `tesKoneksiDanIzin` sekali dari editor dan setujui izin akses yang diminta Google (Sheets dan koneksi internet / `UrlFetchApp`). Jalankan juga `setupPaymentStatus` sekali untuk menyiapkan dropdown kolom Status Pembayaran.
 5. **Deploy → New deployment → Web app**
    - Execute as: **Me**
    - Who has access: **Anyone** (agar Fonnte bisa memanggil webhook)
@@ -157,6 +170,8 @@ Hasilnya ada di folder `dist/` dan bisa di-hosting di layanan static hosting man
 
 Tidak perlu instalasi apa pun:
 - Pesanan baru otomatis muncul sebagai baris baru di Google Sheets rekap pesanan.
+- Buka menu **📊 Business Intelligence → Buka Dashboard BI** untuk melihat ringkasan penjualan per bulan.
+- Ubah kolom **Status Pembayaran** menjadi Approved/Rejected setelah memverifikasi pembayaran.
 - Bagikan akses Sheets hanya ke pengelola yang membutuhkannya, karena berisi nama, nomor, dan alamat pelanggan.
 - Verifikasi pembayaran, rekonsiliasi, dan stok masih dilakukan manual di luar sistem ini.
 
@@ -164,10 +179,10 @@ Tidak perlu instalasi apa pun:
 
 ## Catatan Pengembangan
 
-Hasil pengujian internal pada 27 November 2026 terhadap commit `ee185f5` dan proyek Apps Script yang ter-deploy:
+Hasil pengujian internal pada 27 November 2026 (website commit `ee185f5`, Apps Script deployment RevFonnte2 versi 10, plus satu pesanan uji nyata `WT-8133`):
 
-- **`google-apps-script.js` di repo tertinggal dari Apps Script yang berjalan.** Versi di repo (setara `RevFonnte.gs`, 5 Nov 2026) gagal membaca **Detail Pesanan**, **Total Bayar**, dan ID pesanan. Versi yang aktif (`RevFonnte2.gs`, deployment versi 10, 13 Nov 2026) sudah memperbaikinya dan menambah kolom **Status Pembayaran**. Proyek Apps Script juga berisi `Code.gs` + `Dashboard.html` (menu *Business Intelligence* dan status pembayaran) yang belum ada di repo. Salin berkas-berkas itu ke repo.
-- Proyek Apps Script punya beberapa deployment aktif dan beberapa berkas dengan fungsi `doPost`. Pastikan webhook Fonnte mengarah ke deployment yang benar, lalu arsipkan yang lain.
+- Isi `apps-script/` disalin dari proyek Apps Script "API Wetu Kopi" pada 27 Nov 2026; token Fonnte diganti dengan pembacaan dari Script Properties. Versi lama webhook (`google-apps-script.js`, setara `RevFonnte.gs`) gagal membaca detail pesanan, total, dan ID pesanan; versi `RevFonnte2.gs` sudah memperbaikinya dan terbukti pada uji nyata.
+- Proyek Apps Script punya beberapa deployment aktif dan beberapa berkas lama dengan fungsi `doPost`. Pada uji nyata, kolom Status Pembayaran tetap kosong, jadi kemungkinan webhook Fonnte belum mengarah ke deployment RevFonnte2. Pastikan URL webhook benar, lalu arsipkan deployment lain.
 - Belum ada pencegahan pesanan ganda, dan ID pesanan belum disimpan di sheet Pesanan.
 - Balasan otomatis bot mengarahkan ke `wetu-kopi.vercel.app`, tetapi alamat itu menampilkan 404 saat diperiksa.
 - Sheet uji coba memakai 8 kolom (A–H, dengan **Status Pembayaran** di kolom H), ditambah sheet **Pembayaran** dan **Inventory** yang masih diisi manual.
